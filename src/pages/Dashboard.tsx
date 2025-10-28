@@ -531,7 +531,7 @@ const Dashboard = () => {
                             <img
                               src={m.user?.profilePhoto}
                               alt={getFullName(m.user)}
-                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                              className="w-12 h-12 rounded-lg object-cover shrink-0"
                             />
                           ) : (
                             <div className="bg-gradient-primary w-10 h-10 rounded-full flex items-center justify-center">

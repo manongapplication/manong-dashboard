@@ -1,0 +1,59 @@
+name: Manong Dashboard CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci
+          fi
+
+      - name: Build Dashboard
+        run: |
+          if [ -f "package.json" ] && npm run | grep build; then
+            npm run build
+          fi
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: 22
+          script: |
+            DASHBOARD_DIR="/var/www/manong-dashboard"
+
+            # Ensure folder exists
+            mkdir -p $DASHBOARD_DIR
+
+            # Pull latest code
+            if [ ! -d "$DASHBOARD_DIR/.git" ]; then
+              rm -rf $DASHBOARD_DIR
+              git clone https://github.com/manongapplication/manong-dashboard.git $DASHBOARD_DIR
+            fi
+
+            cd $DASHBOARD_DIR
+            git reset --hard
+            git pull origin main
+
+            # Optional: if you have a build output (e.g., dist)
+            if [ -d "dist" ]; then
+              rm -rf /var/www/html/manong-dashboard
+              mv dist /var/www/html/manong-dashboard
+            else
+              rsync -a --delete ./ /var/www/html/manong-dashboard/
+            fi
+
+            systemctl reload nginx || true

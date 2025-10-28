@@ -1,0 +1,52 @@
+
+@import "tailwindcss";
+
+@theme {
+/* Primary Colors */
+  --color-deep-teal: #052F35;        /* primary background */
+  --primary: #04697D;          /* accent or primary button */
+  --color-primary-dark: #034B57;     
+  --color-primary-light: #D8E5E7;
+
+  /* Teals */
+  --color-teal-dark: #03414A;
+
+  /* Accents */
+  --color-yellow-accent: #FFC107;    /* icons, highlights */
+  --color-gold-light: #FFD700;
+  --color-gold: #FFC107;
+  --color-gold-deep: #FFA000;
+  --color-orange-accent: #FF9149;
+
+  /* Background */
+  --color-background-grey: #F5F5F5;
+
+  /* Service Colors */
+  --color-service-blue: #3B82F6;
+  --color-service-orange: #F59E0B;
+  --color-service-red: #EF4444;
+  --color-service-purple: #8B5CF6;
+  --color-service-green: #10B981;
+  --color-service-indigo: #6366F1;
+  --color-service-pink: #EC4899;
+}
+
+@layer utilities {
+
+  .bg-gradient-primary {
+    background: linear-gradient(to bottom right, var(--primary), var(--color-primary-dark));
+  }
+
+  .bg-primary {
+    background: var(--primary) !important;
+  }
+
+  .text-primary {
+    color: var(--primary) !important;
+  }
+}
+
+.btn {
+  background-color: var(--color-primary-dark);
+  color: white;
+}

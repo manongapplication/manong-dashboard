@@ -1,13 +1,13 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { Ban, CheckCircle, Clock, Power, Users, MoreVertical, Eye, Edit, Trash2, ChevronLeft, ChevronRight, User } from "lucide-react";
+import { Ban, CheckCircle, Clock, Users, MoreVertical, Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Clock10, Verified, Hammer } from "lucide-react";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import StatsCard from "@/components/ui/stats-card";
-import type { Manong, ManongProfile, AppUser } from "@/types";
+import type { AppUser } from "@/types";
 import Modal from "@/components/ui/modal";
 import clsx from "clsx";
 
-interface UpdateManongForm {
+interface UpdateUserForm {
   firstName: string;
   lastName: string;
   phone: string;
@@ -17,12 +17,12 @@ interface UpdateManongForm {
   experienceDescription: string;
 }
 
-const Dashboard = () => {
+const UsersPage = () => {
   const baseApiUrl = import.meta.env.VITE_API_URL;
   const baseUrl = import.meta.env.VITE_BASE_URL;
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
-  const [manongs, setManongs] = useState<Manong[]>([]);
-  const [filteredManongs, setFilteredManongs] = useState<Manong[]>([]);
+  const [appUsers, setAppUsers] = useState<AppUser[]>([]);
+  const [filteredAppUsers, setFilteredAppUsers] = useState<AppUser[]>([]);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,16 +41,16 @@ const Dashboard = () => {
   // Stats state
   const [stats, setStats] = useState({
     total: 0,
-    available: 0,
-    busy: 0,
-    offline: 0,
+    pending: 0,
+    onHold: 0,
+    verified: 0,
+    rejected: 0,
     suspended: 0,
     deleted: 0,
   });
 
   // Edit state
-  const [editingManong, setEditingManong] = useState<number | null>(null);
-  const [expandedManongs, setExpandedManongs] = useState<Set<number>>(new Set());
+  const [editingAppUser, setEditingAppUser] = useState<number | null>(null);
 
   // React Hook Form
   const {
@@ -58,27 +58,29 @@ const Dashboard = () => {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<UpdateManongForm>();
+  } = useForm<UpdateUserForm>();
 
   const tabs = [
     { label: "All Manongs", count: stats.total, status: null },
-    { label: "Available", count: stats.available, status: "available" },
-    { label: "Busy", count: stats.busy, status: "busy" },
-    { label: "Offline", count: stats.offline, status: "offline" },
+    { label: "Pending", count: stats.pending, status: "pending" },
+    { label: "On Hold", count: stats.onHold, status: "onHold" },
+    { label: "Verified", count: stats.verified, status: "verified" },
+    { label: "Rejected", count: stats.rejected, status: "rejected" },
     { label: "Suspended", count: stats.suspended, status: "suspended" },
     { label: "Deleted", count: stats.deleted, status: "deleted" },
   ];
 
-  const fetchManongs = async (page = 1, serviceItemId?: number) => {
+  const fetchUsers = async (page = 1) => {
     setLoading(true);
     setError(null);
     
     try {
       const token = localStorage.getItem('token');
+
+      console.log(`Token ${token}`);
       
-      const response = await axios.post(
-        `${baseApiUrl}/manongs/all?page=${page}&limit=${limit}`,
-        { serviceItemId: serviceItemId || undefined },
+      const response = await axios.get(
+        `${baseApiUrl}/user/all?page=${page}&limit=${limit}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -92,129 +94,93 @@ const Dashboard = () => {
         const data = response.data.data;
         console.log(response.data);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const normalizedManongs = data.map((item: any) => ({
-          id: item.id,
-          user: {
-            id: item.id,
-            firstName: item.firstName,
-            lastName: item.lastName,
-            email: item.email,
-            role: item.role,
-            phone: item.phone,
-            addressLine: item.addressLine,
-            status: item.status,
-            createdAt: item.createdAt,
-            deletedAt: item.deletedAt,
-          },
-          manongProfile: item.manongProfile,
-          providerVerifications: item.providerVerifications,
-        }));
+        setAppUsers(data);
 
-        console.log('Normalized Data:', normalizedManongs);
-
-        
-        setManongs(normalizedManongs);
-
-        
-
-        setFilteredManongs(normalizedManongs);
+        setFilteredAppUsers(data);
         
         setTotalPages(data.totalPages || 1);
-        setTotalCount(data.totalCount || normalizedManongs.length || 0);
+        setTotalCount(data.totalCount || data.length || 0);
         setCurrentPage(page);
         
-        calculateStats(normalizedManongs);
+        calculateStats(data);
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error('Error fetching manongs:', err);
-      setError(err.response?.data?.message || 'Failed to fetch manongs');
+      console.error('Error fetching users:', err);
+      setError(err.response?.data?.message || 'Failed to fetch users');
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateStats = (data: Manong[]) => {
-    const activeUsers = hideDeleted ? data.filter(m => m.user.deletedAt === null) : data;
+  const calculateStats = (data: AppUser[]) => {
+    const activeUsers = hideDeleted ? data.filter(u => u.deletedAt === null) : data;
 
     setStats({
       total: hideDeleted ? activeUsers.length : data.length,
-      available: data.filter(m => m.manongProfile.status === "available" && m.user.deletedAt === null).length,
-      busy: data.filter(m => m.manongProfile.status === "busy" && m.user.deletedAt === null).length,
-      offline: data.filter(m => m.manongProfile.status === "offline" && m.user.deletedAt === null).length,
-      suspended: data.filter(m => m.manongProfile.status === "suspended").length,
-      deleted: data.filter(m => m.user.deletedAt !== null).length,
+      pending: data.filter(u => u.status === "pending" && u.deletedAt === null).length,
+      onHold: data.filter(u => u.status === "onHold" && u.deletedAt === null).length,
+      verified: data.filter(u => u.status === "verified" && u.deletedAt === null).length,
+      rejected: data.filter(u => u.status === "rejected").length,
+      suspended: data.filter(u => u.status === "suspended").length,
+      deleted: data.filter(u => u.deletedAt !== null).length,
     });
   };
 
-  const filterManongsByStatus = (status: string | null) => {
-    let filtered = manongs;
+
+  const filterUserByStatus = (status: string | null) => {
+    let filtered = appUsers;
     
     // First filter by hideDeleted
     if (hideDeleted) {
-      filtered = filtered.filter(m => m.user.deletedAt === null);
+      filtered = filtered.filter(u => u.deletedAt === null);
     }
     
     // Then filter by status
     if (status) {
-      filtered = filtered.filter(m => m.user.status === status);
+      filtered = filtered.filter(u => u.status === status);
     }
 
     filtered = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.user.createdAt!).getTime();
-      const dateB = new Date(b.user.createdAt!).getTime();
+      const dateA = new Date(a.createdAt!).getTime();
+      const dateB = new Date(b.createdAt!).getTime();
       
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
     
-    setFilteredManongs(filtered);
+    setFilteredAppUsers(filtered);
   };
 
   useEffect(() => {
     const selectedTab = tabs[selectedTabIndex];
-    filterManongsByStatus(selectedTab.status);
+    filterUserByStatus(selectedTab.status);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder]);
 
-  const toggleExpand = (id: number) => {
-    setExpandedManongs((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  const handleEditClick = (m: Manong) => {
-    setEditingManong(m.id);
+  const handleEditClick = (u: AppUser) => {
+    setEditingAppUser(u.id);
     reset({
-      firstName: m.user.firstName || '',
-      lastName: m.user.lastName || '',
-      phone: m.user.phone || '',
-      addressLine: m.user.addressLine || '',
-      status: m.user.status || 'pending',
-      yearsExperience: m.manongProfile.yearsExperience || 0,
-      experienceDescription: m.manongProfile.experienceDescription || '',
+      firstName: u.firstName || '',
+      lastName: u.lastName || '',
+      phone: u.phone || '',
+      addressLine: u.addressLine || '',
+      status: u.status || 'pending',
     });
   };
 
   const handleCancelEdit = () => {
-    setEditingManong(null);
+    setEditingAppUser(null);
     reset();
   };
 
-  const onSubmit = async (data: UpdateManongForm) => {
-    if (!editingManong) return;
+  const onSubmit = async (data: UpdateUserForm) => {
+    if (!editingAppUser) return;
 
     try {
       const token = localStorage.getItem('token');
       
       await axios.put(
-        `${baseApiUrl}/manongs/${editingManong}`,
+        `${baseApiUrl}/user/${editingAppUser}`,
         data,
         {
           headers: {
@@ -227,18 +193,18 @@ const Dashboard = () => {
       );
 
       // Refresh the data
-      await fetchManongs(currentPage);
-      setEditingManong(null);
+      await fetchUsers(currentPage);
+      setEditingAppUser(null);
       reset();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error('Error updating manong:', err);
-      setError(err.response?.data?.message || 'Failed to update manong');
+      console.error('Error updating user:', err);
+      setError(err.response?.data?.message || 'Failed to update user');
     }
   };
 
   useEffect(() => {
-    fetchManongs(1);
+    fetchUsers(1);
   }, []);
 
   const handleTabChange = (index: number) => {
@@ -254,21 +220,21 @@ const Dashboard = () => {
       setHideDeleted(true);
     }
 
-    filterManongsByStatus(selectedTab.status);
+    filterUserByStatus(selectedTab.status);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      fetchManongs(newPage);
-      setSelectedTabIndex(0); // Reset to "All Manongs" when changing pages
+      fetchUsers(newPage);
+      setSelectedTabIndex(0); // Reset to "All Users" when changing pages
     }
   };
 
   const toggleSelectAll = () => {
-    if (selectedItems.size === filteredManongs.length) {
+    if (selectedItems.size === filteredAppUsers.length) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(filteredManongs.map(m => m.id)));
+      setSelectedItems(new Set(filteredAppUsers.map(u => u.id)));
     }
   };
 
@@ -284,12 +250,14 @@ const Dashboard = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "available":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "busy":
+      case "pending":
         return "bg-orange-100 text-orange-700 border-orange-200";
-      case "offline":
-        return "bg-slate-100 text-slate-700 border-slate-200";
+      case "onHold":
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      case "verified":
+        return "bg-green-100 text-green-700 border-green-200";
+      case "rejected":
+        return "bg-red-100 text-red-700 border-red-200";
       case "suspended":
       case "inactive":
         return "bg-violet-100 text-violet-700 border-violet-200";
@@ -312,53 +280,8 @@ const Dashboard = () => {
     return user.nickname || user.firstName || user.lastName || "N/A";
   };
 
-  const getSpecialities = (
-    manongProfile: ManongProfile,
-    isExpanded: boolean,
-    toggle: () => void
-  ) => {
-    const list = manongProfile.manongSpecialities || [];
-
-    if (list.length === 0) return "No specialities";
-
-    const titles = list.map(s => s.subServiceItem.title);
-
-    if (isExpanded) {
-      return (
-        <>
-          {titles.join(", ")}{" "}
-          <button
-            onClick={toggle}
-            className="text-blue-600 hover:underline text-sm cursor-pointer"
-          >
-            show less
-          </button>
-        </>
-      );
-    }
-
-    const visible = titles.slice(0, 5);
-    const hiddenCount = titles.length - 5;
-
-    if (hiddenCount > 0) {
-      return (
-        <>
-          {visible.join(", ")}{" "}
-          <button
-            onClick={toggle}
-            className="text-blue-600 hover:underline text-sm cursor-pointer"
-          >
-            (+{hiddenCount} more)
-          </button>
-        </>
-      );
-    }
-
-    return visible.join(", ");
-  };
-
   const handleDelete = async (id: number) => {
-    const confirmDelete = window.confirm('Are you sure you want to delete this manong?');
+    const confirmDelete = window.confirm('Are you sure you want to delete this user?');
     if (!confirmDelete) return;
 
     setLoading(true);
@@ -367,7 +290,7 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await axios.delete(`${baseApiUrl}/manongs/${id}`, {
+      const response = await axios.delete(`${baseApiUrl}/user/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'ngrok-skip-browser-warning': 'true',
@@ -375,18 +298,18 @@ const Dashboard = () => {
       });
 
       if (response.data?.id || response.data?.success) {
-        setManongs((prev) => prev.filter((m) => m.id !== id));
-        setFilteredManongs((prev) => prev.filter((m) => m.id !== id));
+        setAppUsers((prev) => prev.filter((u) => u.id !== id));
+        setFilteredAppUsers((prev) => prev.filter((u) => u.id !== id));
       }
 
       if (response.status === 204) {
-        setManongs((prev) => prev.filter((m) => m.id !== id));
-        setFilteredManongs((prev) => prev.filter((m) => m.id !== id));
+        setAppUsers((prev) => prev.filter((u) => u.id !== id));
+        setFilteredAppUsers((prev) => prev.filter((u) => u.id !== id));
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error('Error deleting manong:', err);
-      setError(err.response?.data?.message || 'Failed to delete manong');
+      console.error('Error deleting user:', err);
+      setError(err.response?.data?.message || 'Failed to delete user');
     } finally {
       setLoading(false);
     }
@@ -395,7 +318,7 @@ const Dashboard = () => {
   const handleBulkDelete = async () => {
     if (selectedItems.size === 0) return;
 
-    const confirmDelete = window.confirm(`Delete ${selectedItems.size} manong(s)?`);
+    const confirmDelete = window.confirm(`Delete ${selectedItems.size} user(s)?`);
     if (!confirmDelete) return;
 
     setLoading(true);
@@ -406,7 +329,7 @@ const Dashboard = () => {
       const ids = Array.from(selectedItems);
 
       const response = await axios.post(
-        `${baseApiUrl}/manongs/bulk-delete`,
+        `${baseApiUrl}/user/bulk-delete`,
         { ids },
         {
           headers: {
@@ -419,14 +342,14 @@ const Dashboard = () => {
 
       if (response.data.success) {
         // Filter out deleted items from UI
-        setManongs((prev) => prev.filter((m) => !selectedItems.has(m.id)));
-        setFilteredManongs((prev) => prev.filter((m) => !selectedItems.has(m.id)));
+        setAppUsers((prev) => prev.filter((u) => !selectedItems.has(u.id)));
+        setFilteredAppUsers((prev) => prev.filter((u) => !selectedItems.has(u.id)));
         setSelectedItems(new Set());
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error('Error bulk deleting manongs:', err);
-      setError(err.response?.data?.message || 'Failed to delete selected manongs');
+      console.error('Error bulk deleting users:', err);
+      setError(err.response?.data?.message || 'Failed to delete selected users');
     } finally {
       setLoading(false);
     }
@@ -434,40 +357,47 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (hideDeleted) {
-      setFilteredManongs(manongs.filter(m => m.user.deletedAt === null));
+      setFilteredAppUsers(appUsers.filter(u => u.deletedAt === null));
     } else {
       const selectedTab = tabs[selectedTabIndex];
-      filterManongsByStatus(selectedTab.status);
+      filterUserByStatus(selectedTab.status);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideDeleted, manongs]);
+  }, [hideDeleted, appUsers]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatsCard title="Total" value={stats.total} Icon={Users} />
           <StatsCard
-            title="Available"
-            value={stats.available}
-            Icon={CheckCircle}
-            color="text-green-600"
-            bgColor="bg-green-100"
-          />
-          <StatsCard
-            title="Busy"
-            value={stats.busy}
+            title="Pending"
+            value={stats.pending}
             Icon={Clock}
             color="text-orange-600"
             bgColor="bg-orange-100"
           />
           <StatsCard
-            title="Offline"
-            value={stats.offline}
-            Icon={Power}
-            color="text-slate-600"
-            bgColor="bg-slate-100"
+            title="On Hold"
+            value={stats.onHold}
+            Icon={Clock10}
+            color="text-amber-600"
+            bgColor="bg-amber-100"
+          />
+          <StatsCard
+            title="Verified"
+            value={stats.verified}
+            Icon={Verified}
+            color="text-green-600"
+            bgColor="bg-green-100"
+          />
+          <StatsCard
+            title="Rejected"
+            value={stats.rejected}
+            Icon={Hammer}
+            color="text-red-600"
+            bgColor="bg-red-100"
           />
           <StatsCard
             title="Suspended"
@@ -528,12 +458,12 @@ const Dashboard = () => {
           {/* Table - Card Layout */}
           <div className="p-6">
             {/* Select All */}
-            {filteredManongs.length > 0 && (
+            {filteredAppUsers.length > 0 && (
               <div className="mb-4 flex justify-between items-center gap-2 pb-3 border-b border-slate-200">
                 <div className="flex flex-row items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={selectedItems.size === filteredManongs.length && filteredManongs.length > 0}
+                    checked={selectedItems.size === filteredAppUsers.length && filteredAppUsers.length > 0}
                     onChange={toggleSelectAll}
                     className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
                   />
@@ -567,33 +497,33 @@ const Dashboard = () => {
             {loading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-slate-600">Loading manongs...</p>
+                <p className="mt-4 text-slate-600">Loading users...</p>
               </div>
             ) : (
               <>
                 {/* Manongs List */}
                 <div className="space-y-4">
-                  {filteredManongs.map((m) => (
+                  {filteredAppUsers.map((u) => (
                     <form
-                      key={m.id}
+                      key={u.id}
                       onSubmit={handleSubmit(onSubmit)}
-                      className={clsx("border border-slate-200 rounded-lg p-5 hover:shadow-md transition-all hover:border-blue-200", m.user.status == 'deleted' && "bg-red-200")}
+                      className={clsx("border border-slate-200 rounded-lg p-5 hover:shadow-md transition-all hover:border-blue-200", u.status == 'deleted' && "bg-red-200")}
                     >
                       <div className="flex items-start gap-4">
                         {/* Checkbox */}
                         <input
                           type="checkbox"
-                          checked={selectedItems.has(m.id)}
-                          onChange={() => toggleSelectItem(m.id)}
+                          checked={selectedItems.has(u.id)}
+                          onChange={() => toggleSelectItem(u.id)}
                           className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
                         />
 
                         {/* Avatar and Name */}
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {m.user?.profilePhoto ? (
+                          {u.profilePhoto ? (
                             <img
-                              src={m.user?.profilePhoto}
-                              alt={getFullName(m.user)}
+                              src={u.profilePhoto}
+                              alt={getFullName(u)}
                               className="w-12 h-12 rounded-lg object-cover shrink-0"
                             />
                           ) : (
@@ -602,7 +532,7 @@ const Dashboard = () => {
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            {editingManong === m.id ? (
+                            {editingAppUser === u.id ? (
                               <div className="space-y-2">
                                 <div>
                                   <input
@@ -629,8 +559,8 @@ const Dashboard = () => {
                               </div>
                             ) : (
                               <>
-                                <h3 className="font-semibold text-slate-800 truncate">{getFullName(m.user)}</h3>
-                                <p className="text-sm text-slate-500">{m.user?.phone}</p>
+                                <h3 className="font-semibold text-slate-800 truncate">{getFullName(u)}</h3>
+                                <p className="text-sm text-slate-500">{u.phone}</p>
                               </>
                             )}
                           </div>
@@ -639,10 +569,10 @@ const Dashboard = () => {
                         {/* Status Badge */}
                         <span
                           className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-                            m.manongProfile.status
+                            u.status
                           )}`}
                         >
-                          {formatStatus(m.manongProfile.status)}
+                          {formatStatus(u.status)}
                         </span>
 
                         {/* Actions Menu */}
@@ -653,50 +583,9 @@ const Dashboard = () => {
 
                       {/* Details Grid */}
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <div className="flex justify-between py-2 border-b gap-2 border-slate-100">
-                          <span className="text-slate-500">Specialities</span>
-                          <div className="p-4 bg-white rounded-lg shadow">
-                            <p className="text-sm text-gray-600 text-start">
-                              {getSpecialities(
-                                m.manongProfile,
-                                expandedManongs.has(m.id),
-                                () => toggleExpand(m.id)
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100">
-                          <span className="text-slate-500">Experience</span>
-                          {editingManong === m.id ? (
-                            <div>
-                              <input
-                                {...register("yearsExperience", { 
-                                  required: "Experience is required",
-                                  min: { value: 0, message: "Experience must be positive" }
-                                })}
-                                type="number"
-                                className="px-2 py-1 text-sm border border-slate-300 rounded w-24"
-                                placeholder="Years"
-                              />
-                              {errors.yearsExperience && (
-                                <p className="text-xs text-red-600 mt-1">{errors.yearsExperience.message}</p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium">{m.manongProfile.yearsExperience || 0} years</span>
-                          )}
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100">
-                          <span className="text-slate-500">Assistants</span>
-                          <span className="text-slate-800 font-medium">{m.manongProfile.manongAssistants?.length || 0}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100">
-                          <span className="text-slate-500">Verified</span>
-                          <span className="text-slate-800 font-medium text-right">{m.manongProfile.isProfessionallyVerified ? "Yes" : "No"}</span>
-                        </div>
                         <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
                           <span className="text-slate-500">Address</span>
-                          {editingManong === m.id ? (
+                          {editingAppUser === u.id ? (
                             <div className="flex-1 ml-4">
                               <input
                                 {...register("addressLine")}
@@ -706,27 +595,12 @@ const Dashboard = () => {
                               />
                             </div>
                           ) : (
-                            <span className="text-slate-800 font-medium text-right">{m.user?.addressLine || "N/A"}</span>
-                          )}
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                          <span className="text-slate-500">Description</span>
-                          {editingManong === m.id ? (
-                            <div className="flex-1 ml-4">
-                              <textarea
-                                {...register("experienceDescription")}
-                                className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                placeholder="Description"
-                                rows={2}
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium text-right">{m.manongProfile.experienceDescription || "N/A"}</span>
+                            <span className="text-slate-800 font-medium text-right">{u.addressLine || "N/A"}</span>
                           )}
                         </div>
                         <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
                           <span className="text-slate-500">Status</span>
-                          {editingManong === m.id ? (
+                          {editingAppUser === u.id ? (
                             <div>
                               <select
                                 {...register("status", { required: "Status is required" })}
@@ -743,10 +617,10 @@ const Dashboard = () => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-800 font-medium text-right">{m.user?.status || "N/A"}</span>
+                            <span className="text-slate-800 font-medium text-right">{u.status || "N/A"}</span>
                           )}
                         </div>
-                        {m.providerVerifications?.map(p => (
+                        {u.providerVerifications?.map(p => (
                           <div key={p.id} className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
                             <span className="text-slate-500">{p.documentType}</span>
                             <span className="text-slate-800 font-medium text-right">
@@ -772,7 +646,7 @@ const Dashboard = () => {
 
                       {/* Quick Actions */}
                       <div className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
-                        {editingManong === m.id ? (
+                        {editingAppUser === u.id ? (
                           <>
                             <button 
                               type="submit"
@@ -798,13 +672,13 @@ const Dashboard = () => {
                             </button>
                             <button 
                               type="button"
-                              onClick={() => handleEditClick(m)}
+                              onClick={() => handleEditClick(u)}
                               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
                             >
                               <Edit size={16} />
                               Edit
                             </button>
-                            <button type="button" onClick={() => handleDelete(m.id)} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-auto">
+                            <button type="button" onClick={() => handleDelete(u.id)} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-auto">
                               <Trash2 size={16} />
                               Delete
                             </button>
@@ -875,12 +749,12 @@ const Dashboard = () => {
             )}
 
             {/* Empty State */}
-            {!loading && filteredManongs.length === 0 && (
+            {!loading && filteredAppUsers.length === 0 && (
               <div className="text-center py-12">
                 <Users size={48} className="mx-auto text-slate-300 mb-4" />
-                <h3 className="text-lg font-medium text-slate-600 mb-2">No manongs found</h3>
+                <h3 className="text-lg font-medium text-slate-600 mb-2">No users found</h3>
                 <p className="text-sm text-slate-500">
-                  {selectedTabIndex > 0 ? "No manongs with this status" : "Try adjusting your filters or check back later"}
+                  {selectedTabIndex > 0 ? "No users with this status" : "Try adjusting your filters or check back later"}
                 </p>
               </div>
             )}
@@ -899,4 +773,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default UsersPage;

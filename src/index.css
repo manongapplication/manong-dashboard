@@ -5,6 +5,8 @@
 /* Primary Colors */
   --color-deep-teal: #052F35;        /* primary background */
   --primary: #04697D;          /* accent or primary button */
+  --color-light-cyan: #59abb9;
+  --color-sky-blue: #8fd3e8;
   --color-primary-dark: #034B57;     
   --color-primary-light: #D8E5E7;
 
@@ -35,6 +37,10 @@
 
   .bg-gradient-primary {
     background: linear-gradient(to bottom right, var(--primary), var(--color-primary-dark));
+  }
+
+  .bg-gradient-light-cyan {
+    background: linear-gradient(to bottom right, var(--color-light-cyan), var(--color-sky-blue));
   }
 
   .bg-primary {

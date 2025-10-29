@@ -1,6 +1,6 @@
 import Layout from "@/components/layout/Layout";
 import ProtectedRoute from "@/components/protected-route";
-import { Dashboard, Login, Settings, Users } from "@/pages";
+import { Dashboard, Login, ServicesPage, Settings, UsersPage } from "@/pages";
 import type { RouteObject } from "react-router-dom";
 
 const routes: RouteObject[] = [
@@ -13,8 +13,9 @@ const routes: RouteObject[] = [
     ),
     children: [
       { path: "", element: <Dashboard /> },
-      { path: "users", element: <Users /> },
+      { path: "users", element: <UsersPage /> },
       { path: "settings", element: <Settings /> },
+      { path: "services", element: <ServicesPage /> },
     ],
   },
   { path: "/login", element: <Login /> }

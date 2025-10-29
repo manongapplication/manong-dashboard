@@ -3,21 +3,21 @@ import type { ForwardRefExoticComponent, RefAttributes } from "react";
 
 type IconType = ForwardRefExoticComponent<LucideProps & RefAttributes<SVGSVGElement>>;
 
-type StatsCard = {
+interface StatsCard {
   title: string;
   value: number;
   Icon: IconType;
   color?: string;
   bgColor?: string;
-};
+}
 
-export default function StatsCard({ 
+const StatsCard: React.FC<StatsCard> = ({ 
   title,
   value,
   Icon,
   color,
   bgColor
-}: StatsCard) {
+}) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
       <div className={`${bgColor} ${color} p-3 rounded-lg`}>
@@ -30,3 +30,5 @@ export default function StatsCard({
     </div>
   );
 }
+
+export default StatsCard;

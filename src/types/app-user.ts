@@ -1,3 +1,5 @@
+import type { ProviderVerification } from "./provider-verification";
+
 export interface AppUser {
   id: number;
   firstName?: string;
@@ -12,4 +14,6 @@ export interface AppUser {
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+
+  providerVerifications?: ProviderVerification[];
 }

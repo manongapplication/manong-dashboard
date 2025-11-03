@@ -40,7 +40,7 @@ const ServicesPage: React.FC = () => {
 
 
   const fetchServices = async () => {
-    const response = await axios.get(`http://localhost:3000/api/service-items`);
+    const response = await axios.get(`${baseApiUrl}/service-items`);
 
     if (response.data.success) {
       const data = response.data.data;

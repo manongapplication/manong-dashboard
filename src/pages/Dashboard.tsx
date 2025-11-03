@@ -1,10 +1,10 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { Ban, CheckCircle, Clock, Power, Users, MoreVertical, Eye, Edit, Trash2, ChevronLeft, ChevronRight, User } from "lucide-react";
+import { Ban, CheckCircle, Clock, Power, Users, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import axios from "axios";
-import { useForm } from "react-hook-form";
 import StatsCard from "@/components/ui/stats-card";
-import type { Manong, ManongProfile, AppUser } from "@/types";
+import type { Manong } from "@/types";
 import Modal from "@/components/ui/modal";
+import ManongCard from "@/components/ui/manong-card";
 import clsx from "clsx";
 
 interface UpdateManongForm {
@@ -31,6 +31,16 @@ const Dashboard = () => {
   const [modalContent, setModalContent] = useState<ReactNode>(<></>);
   const [hideDeleted, setHideDeleted] = useState(true);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [expandedManongs, setExpandedManongs] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (id: number) => {
+    setExpandedManongs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,18 +57,6 @@ const Dashboard = () => {
     suspended: 0,
     deleted: 0,
   });
-
-  // Edit state
-  const [editingManong, setEditingManong] = useState<number | null>(null);
-  const [expandedManongs, setExpandedManongs] = useState<Set<number>>(new Set());
-
-  // React Hook Form
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UpdateManongForm>();
 
   const tabs = [
     { label: "All Manongs", count: stats.total, status: null },
@@ -90,7 +88,6 @@ const Dashboard = () => {
 
       if (response.data.success) {
         const data = response.data.data;
-        console.log(response.data);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const normalizedManongs = data.map((item: any) => ({
@@ -111,13 +108,7 @@ const Dashboard = () => {
           providerVerifications: item.providerVerifications,
         }));
 
-        console.log('Normalized Data:', normalizedManongs);
-
-        
         setManongs(normalizedManongs);
-
-        
-
         setFilteredManongs(normalizedManongs);
         
         setTotalPages(data.totalPages || 1);
@@ -177,44 +168,12 @@ const Dashboard = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder]);
 
-  const toggleExpand = (id: number) => {
-    setExpandedManongs((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  const handleEditClick = (m: Manong) => {
-    setEditingManong(m.id);
-    reset({
-      firstName: m.user.firstName || '',
-      lastName: m.user.lastName || '',
-      phone: m.user.phone || '',
-      addressLine: m.user.addressLine || '',
-      status: m.user.status || 'pending',
-      yearsExperience: m.manongProfile.yearsExperience || 0,
-      experienceDescription: m.manongProfile.experienceDescription || '',
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingManong(null);
-    reset();
-  };
-
-  const onSubmit = async (data: UpdateManongForm) => {
-    if (!editingManong) return;
-
+  const handleUpdateManong = async (id: number, data: UpdateManongForm) => {
     try {
       const token = localStorage.getItem('token');
       
       await axios.put(
-        `${baseApiUrl}/manongs/${editingManong}`,
+        `${baseApiUrl}/manongs/${id}`,
         data,
         {
           headers: {
@@ -223,18 +182,26 @@ const Dashboard = () => {
             'ngrok-skip-browser-warning': 'true'
           }
         }
-
       );
 
       // Refresh the data
       await fetchManongs(currentPage);
-      setEditingManong(null);
-      reset();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Error updating manong:', err);
       setError(err.response?.data?.message || 'Failed to update manong');
+      throw err;
     }
+  };
+
+  const handleViewDocument = (documentType: string, documentUrl: string) => {
+    setIsModalOpen(true); 
+    setModalTitle(documentType); 
+    setModalContent(
+      <div className="flex items-center justify-center">
+        <img src={`${baseUrl}/${documentUrl}`} alt={documentType} />
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -280,81 +247,6 @@ const Dashboard = () => {
       newSelected.add(id);
     }
     setSelectedItems(newSelected);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "busy":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "offline":
-        return "bg-slate-100 text-slate-700 border-slate-200";
-      case "suspended":
-      case "inactive":
-        return "bg-violet-100 text-violet-700 border-violet-200";
-      case "deleted":
-        return "bg-red-100 text-red-700 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const getFullName = (user: AppUser) => {
-    if (user?.firstName == null || user?.lastName == null) return '';
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    }
-    return user.nickname || user.firstName || user.lastName || "N/A";
-  };
-
-  const getSpecialities = (
-    manongProfile: ManongProfile,
-    isExpanded: boolean,
-    toggle: () => void
-  ) => {
-    const list = manongProfile.manongSpecialities || [];
-
-    if (list.length === 0) return "No specialities";
-
-    const titles = list.map(s => s.subServiceItem.title);
-
-    if (isExpanded) {
-      return (
-        <>
-          {titles.join(", ")}{" "}
-          <button
-            onClick={toggle}
-            className="text-blue-600 hover:underline text-sm cursor-pointer"
-          >
-            show less
-          </button>
-        </>
-      );
-    }
-
-    const visible = titles.slice(0, 5);
-    const hiddenCount = titles.length - 5;
-
-    if (hiddenCount > 0) {
-      return (
-        <>
-          {visible.join(", ")}{" "}
-          <button
-            onClick={toggle}
-            className="text-blue-600 hover:underline text-sm cursor-pointer"
-          >
-            (+{hiddenCount} more)
-          </button>
-        </>
-      );
-    }
-
-    return visible.join(", ");
   };
 
   const handleDelete = async (id: number) => {
@@ -574,244 +466,18 @@ const Dashboard = () => {
                 {/* Manongs List */}
                 <div className="space-y-4">
                   {filteredManongs.map((m) => (
-                    <form
+                    <ManongCard
                       key={m.id}
-                      onSubmit={handleSubmit(onSubmit)}
-                      className={clsx("border border-slate-200 rounded-lg p-5 hover:shadow-md transition-all hover:border-blue-200", m.user.status == 'deleted' && "bg-red-200")}
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Checkbox */}
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.has(m.id)}
-                          onChange={() => toggleSelectItem(m.id)}
-                          className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
-                        />
-
-                        {/* Avatar and Name */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {m.user?.profilePhoto ? (
-                            <img
-                              src={m.user?.profilePhoto}
-                              alt={getFullName(m.user)}
-                              className="w-12 h-12 rounded-lg object-cover shrink-0"
-                            />
-                          ) : (
-                            <div className="bg-gradient-primary w-10 h-10 rounded-full flex items-center justify-center">
-                              <User color="white" />
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            {editingManong === m.id ? (
-                              <div className="space-y-2">
-                                <div>
-                                  <input
-                                    {...register("firstName", { required: "First name is required" })}
-                                    type="text"
-                                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                    placeholder="First Name"
-                                  />
-                                  {errors.firstName && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.firstName.message}</p>
-                                  )}
-                                </div>
-                                <div>
-                                  <input
-                                    {...register("lastName", { required: "Last name is required" })}
-                                    type="text"
-                                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                    placeholder="Last Name"
-                                  />
-                                  {errors.lastName && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.lastName.message}</p>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <h3 className="font-semibold text-slate-800 truncate">{getFullName(m.user)}</h3>
-                                <p className="text-sm text-slate-500">{m.user?.phone}</p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Status Badge */}
-                        <span
-                          className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-                            m.manongProfile.status
-                          )}`}
-                        >
-                          {formatStatus(m.manongProfile.status)}
-                        </span>
-
-                        {/* Actions Menu */}
-                        <button type="button" className="text-slate-400 hover:text-slate-600 p-1">
-                          <MoreVertical size={20} />
-                        </button>
-                      </div>
-
-                      {/* Details Grid */}
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <div className="flex justify-between py-2 border-b gap-2 border-slate-100">
-                          <span className="text-slate-500">Specialities</span>
-                          <div className="p-4 bg-white rounded-lg shadow">
-                            <p className="text-sm text-gray-600 text-start">
-                              {getSpecialities(
-                                m.manongProfile,
-                                expandedManongs.has(m.id),
-                                () => toggleExpand(m.id)
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100">
-                          <span className="text-slate-500">Experience</span>
-                          {editingManong === m.id ? (
-                            <div>
-                              <input
-                                {...register("yearsExperience", { 
-                                  required: "Experience is required",
-                                  min: { value: 0, message: "Experience must be positive" }
-                                })}
-                                type="number"
-                                className="px-2 py-1 text-sm border border-slate-300 rounded w-24"
-                                placeholder="Years"
-                              />
-                              {errors.yearsExperience && (
-                                <p className="text-xs text-red-600 mt-1">{errors.yearsExperience.message}</p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium">{m.manongProfile.yearsExperience || 0} years</span>
-                          )}
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100">
-                          <span className="text-slate-500">Assistants</span>
-                          <span className="text-slate-800 font-medium">{m.manongProfile.manongAssistants?.length || 0}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100">
-                          <span className="text-slate-500">Verified</span>
-                          <span className="text-slate-800 font-medium text-right">{m.manongProfile.isProfessionallyVerified ? "Yes" : "No"}</span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                          <span className="text-slate-500">Address</span>
-                          {editingManong === m.id ? (
-                            <div className="flex-1 ml-4">
-                              <input
-                                {...register("addressLine")}
-                                type="text"
-                                className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                placeholder="Address"
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium text-right">{m.user?.addressLine || "N/A"}</span>
-                          )}
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                          <span className="text-slate-500">Description</span>
-                          {editingManong === m.id ? (
-                            <div className="flex-1 ml-4">
-                              <textarea
-                                {...register("experienceDescription")}
-                                className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                placeholder="Description"
-                                rows={2}
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium text-right">{m.manongProfile.experienceDescription || "N/A"}</span>
-                          )}
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                          <span className="text-slate-500">Status</span>
-                          {editingManong === m.id ? (
-                            <div>
-                              <select
-                                {...register("status", { required: "Status is required" })}
-                                className="px-2 py-1 text-sm border border-slate-300 rounded"
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="onHold">On Hold</option>
-                                <option value="verified">Verified</option>
-                                <option value="rejected">Rejected</option>
-                                <option value="suspended">Suspended</option>
-                              </select>
-                              {errors.status && (
-                                <p className="text-xs text-red-600 mt-1">{errors.status.message}</p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium text-right">{m.user?.status || "N/A"}</span>
-                          )}
-                        </div>
-                        {m.providerVerifications?.map(p => (
-                          <div key={p.id} className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                            <span className="text-slate-500">{p.documentType}</span>
-                            <span className="text-slate-800 font-medium text-right">
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  setIsModalOpen(true); 
-                                  setModalTitle(p.documentType); 
-                                  setModalContent(
-                                    <div className="flex items-center justify-center">
-                                      <img src={`${baseUrl}/${p.documentUrl}`} alt={p.documentType} />
-                                    </div>
-                                  );
-                                }} 
-                                className="text-blue-600 hover:underline"
-                              >
-                                Show
-                              </button>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Quick Actions */}
-                      <div className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
-                        {editingManong === m.id ? (
-                          <>
-                            <button 
-                              type="submit"
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                            >
-                              <CheckCircle size={16} />
-                              Save
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={handleCancelEdit}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                            >
-                              <Ban size={16} />
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button type="button" className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                              <Eye size={16} />
-                              View
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={() => handleEditClick(m)}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                            >
-                              <Edit size={16} />
-                              Edit
-                            </button>
-                            <button type="button" onClick={() => handleDelete(m.id)} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-auto">
-                              <Trash2 size={16} />
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </form>
+                      manong={m}
+                      isSelected={selectedItems.has(m.id)}
+                      onToggleSelect={toggleSelectItem}
+                      onDelete={handleDelete}
+                      onUpdate={handleUpdateManong}
+                      onViewDocument={handleViewDocument}
+                      isExpanded={expandedManongs.has(m.id)}
+                      toggleExpand={() => toggleExpand(m.id)}
+                      isDark={localStorage.getItem("theme") == 'dark' ? true : false}
+                    />
                   ))}
                 </div>
 

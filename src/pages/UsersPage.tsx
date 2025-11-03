@@ -1,13 +1,13 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { Ban, CheckCircle, Clock, Users, MoreVertical, Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Clock10, Verified, Hammer } from "lucide-react";
+import { Ban, Clock, Users, Trash2, ChevronLeft, ChevronRight, Clock10, Verified, Hammer } from "lucide-react";
 import axios from "axios";
-import { useForm } from "react-hook-form";
 import StatsCard from "@/components/ui/stats-card";
 import type { AppUser } from "@/types";
 import Modal from "@/components/ui/modal";
 import clsx from "clsx";
+import UserCard from "@/components/ui/user-card";
 
-interface UpdateUserForm {
+export interface UpdateUserForm {
   firstName: string;
   lastName: string;
   phone: string;
@@ -49,19 +49,8 @@ const UsersPage = () => {
     deleted: 0,
   });
 
-  // Edit state
-  const [editingAppUser, setEditingAppUser] = useState<number | null>(null);
-
-  // React Hook Form
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UpdateUserForm>();
-
   const tabs = [
-    { label: "All Manongs", count: stats.total, status: null },
+    { label: "Users", count: stats.total, status: null },
     { label: "Pending", count: stats.pending, status: "pending" },
     { label: "On Hold", count: stats.onHold, status: "onHold" },
     { label: "Verified", count: stats.verified, status: "verified" },
@@ -157,30 +146,12 @@ const UsersPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder]);
 
-  const handleEditClick = (u: AppUser) => {
-    setEditingAppUser(u.id);
-    reset({
-      firstName: u.firstName || '',
-      lastName: u.lastName || '',
-      phone: u.phone || '',
-      addressLine: u.addressLine || '',
-      status: u.status || 'pending',
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingAppUser(null);
-    reset();
-  };
-
-  const onSubmit = async (data: UpdateUserForm) => {
-    if (!editingAppUser) return;
-
+  const handleUpdateUser = async (id: number, data: UpdateUserForm) => {
     try {
       const token = localStorage.getItem('token');
       
       await axios.put(
-        `${baseApiUrl}/user/${editingAppUser}`,
+        `${baseApiUrl}/user/${id}`,
         data,
         {
           headers: {
@@ -189,20 +160,27 @@ const UsersPage = () => {
             'ngrok-skip-browser-warning': 'true'
           }
         }
-
       );
 
       // Refresh the data
       await fetchUsers(currentPage);
-      setEditingAppUser(null);
-      reset();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Error updating user:', err);
       setError(err.response?.data?.message || 'Failed to update user');
+      throw err;
     }
   };
 
+  const handleViewDocument = (documentType: string, documentUrl: string) => {
+    setIsModalOpen(true); 
+    setModalTitle(documentType); 
+    setModalContent(
+      <div className="flex items-center justify-center">
+        <img src={`${baseUrl}/${documentUrl}`} alt={documentType} />
+      </div>
+    );
+  };
   useEffect(() => {
     fetchUsers(1);
   }, []);
@@ -246,38 +224,6 @@ const UsersPage = () => {
       newSelected.add(id);
     }
     setSelectedItems(newSelected);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "onHold":
-        return "bg-amber-100 text-amber-700 border-amber-200";
-      case "verified":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "rejected":
-        return "bg-red-100 text-red-700 border-red-200";
-      case "suspended":
-      case "inactive":
-        return "bg-violet-100 text-violet-700 border-violet-200";
-      case "deleted":
-        return "bg-red-100 text-red-700 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const getFullName = (user: AppUser) => {
-    if (user?.firstName == null || user?.lastName == null) return '';
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    }
-    return user.nickname || user.firstName || user.lastName || "N/A";
   };
 
   const handleDelete = async (id: number) => {
@@ -501,191 +447,19 @@ const UsersPage = () => {
               </div>
             ) : (
               <>
-                {/* Manongs List */}
+                {/* Users List */}
                 <div className="space-y-4">
-                  {filteredAppUsers.map((u) => (
-                    <form
-                      key={u.id}
-                      onSubmit={handleSubmit(onSubmit)}
-                      className={clsx("border border-slate-200 rounded-lg p-5 hover:shadow-md transition-all hover:border-blue-200", u.status == 'deleted' && "bg-red-200")}
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Checkbox */}
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.has(u.id)}
-                          onChange={() => toggleSelectItem(u.id)}
-                          className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
-                        />
-
-                        {/* Avatar and Name */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {u.profilePhoto ? (
-                            <img
-                              src={u.profilePhoto}
-                              alt={getFullName(u)}
-                              className="w-12 h-12 rounded-lg object-cover shrink-0"
-                            />
-                          ) : (
-                            <div className="bg-gradient-primary w-10 h-10 rounded-full flex items-center justify-center">
-                              <User color="white" />
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            {editingAppUser === u.id ? (
-                              <div className="space-y-2">
-                                <div>
-                                  <input
-                                    {...register("firstName", { required: "First name is required" })}
-                                    type="text"
-                                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                    placeholder="First Name"
-                                  />
-                                  {errors.firstName && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.firstName.message}</p>
-                                  )}
-                                </div>
-                                <div>
-                                  <input
-                                    {...register("lastName", { required: "Last name is required" })}
-                                    type="text"
-                                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                    placeholder="Last Name"
-                                  />
-                                  {errors.lastName && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.lastName.message}</p>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <h3 className="font-semibold text-slate-800 truncate">{getFullName(u)}</h3>
-                                <p className="text-sm text-slate-500">{u.phone}</p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Status Badge */}
-                        <span
-                          className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-                            u.status
-                          )}`}
-                        >
-                          {formatStatus(u.status)}
-                        </span>
-
-                        {/* Actions Menu */}
-                        <button type="button" className="text-slate-400 hover:text-slate-600 p-1">
-                          <MoreVertical size={20} />
-                        </button>
-                      </div>
-
-                      {/* Details Grid */}
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                          <span className="text-slate-500">Address</span>
-                          {editingAppUser === u.id ? (
-                            <div className="flex-1 ml-4">
-                              <input
-                                {...register("addressLine")}
-                                type="text"
-                                className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
-                                placeholder="Address"
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium text-right">{u.addressLine || "N/A"}</span>
-                          )}
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                          <span className="text-slate-500">Status</span>
-                          {editingAppUser === u.id ? (
-                            <div>
-                              <select
-                                {...register("status", { required: "Status is required" })}
-                                className="px-2 py-1 text-sm border border-slate-300 rounded"
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="onHold">On Hold</option>
-                                <option value="verified">Verified</option>
-                                <option value="rejected">Rejected</option>
-                                <option value="suspended">Suspended</option>
-                              </select>
-                              {errors.status && (
-                                <p className="text-xs text-red-600 mt-1">{errors.status.message}</p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-800 font-medium text-right">{u.status || "N/A"}</span>
-                          )}
-                        </div>
-                        {u.providerVerifications?.map(p => (
-                          <div key={p.id} className="flex justify-between py-2 border-b border-slate-100 md:col-span-2">
-                            <span className="text-slate-500">{p.documentType}</span>
-                            <span className="text-slate-800 font-medium text-right">
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  setIsModalOpen(true); 
-                                  setModalTitle(p.documentType); 
-                                  setModalContent(
-                                    <div className="flex items-center justify-center">
-                                      <img src={`${baseUrl}/${p.documentUrl}`} alt={p.documentType} />
-                                    </div>
-                                  );
-                                }} 
-                                className="text-blue-600 hover:underline"
-                              >
-                                Show
-                              </button>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Quick Actions */}
-                      <div className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
-                        {editingAppUser === u.id ? (
-                          <>
-                            <button 
-                              type="submit"
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                            >
-                              <CheckCircle size={16} />
-                              Save
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={handleCancelEdit}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                            >
-                              <Ban size={16} />
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button type="button" className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                              <Eye size={16} />
-                              View
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={() => handleEditClick(u)}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                            >
-                              <Edit size={16} />
-                              Edit
-                            </button>
-                            <button type="button" onClick={() => handleDelete(u.id)} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-auto">
-                              <Trash2 size={16} />
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </form>
+                  {filteredAppUsers.map((user) => (
+                    <UserCard
+                      key={user.id}
+                      user={user}
+                      isSelected={selectedItems.has(user.id)}
+                      onToggleSelect={toggleSelectItem}
+                      onDelete={handleDelete}
+                      onUpdate={handleUpdateUser}
+                      onViewDocument={handleViewDocument}
+                      isDark={localStorage.getItem("theme") == 'dark' ? true : false}
+                    />
                   ))}
                 </div>
 

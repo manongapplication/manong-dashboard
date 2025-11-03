@@ -31,6 +31,7 @@ const Layout: React.FC = () => {
   
     useEffect(() => {
       document.querySelector("html")?.setAttribute("data-theme", theme ?? 'light');
+      setDarkMode(theme == 'dark' ? true : false);
     }, [theme]);
 
   const toggleDarkMode = () => {

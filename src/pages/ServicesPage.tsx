@@ -1,7 +1,7 @@
 import AlertDialog from "@/components/ui/alert-dialog";
 import ServiceItemCard from "@/components/ui/service-item-card";
 import type { ServiceItem, SubServiceItem } from "@/types";
-import { ServiceItemStatus } from "@/types/service-item-status";
+import { ServiceItemStatus, serviceItemStatusOptions } from "@/types/service-item-status";
 import axios from "axios";
 import clsx from "clsx";
 import { PencilIcon, PlusSquare, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -73,6 +73,7 @@ const ServicesPage: React.FC = () => {
 
   useEffect(() => {
     fetchServices();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAddServiceItem = () => {
@@ -645,10 +646,21 @@ const ServicesPage: React.FC = () => {
                         onChangeValue={onChangeValue}
                       />
                       {isEditing && (
-                        <div className="flex justify-center">
+                        <div className="flex flex-col justify-center gap-2 mt-2 mb-2">
+                          <select
+                            value={item.status}
+                            className="select"
+                            onChange={(e) => onChangeValue(item.id, 'status', e.target.value)}
+                          >
+                            {serviceItemStatusOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                           <button
                             type="button"
-                            className="btn text-xs mb-2 mt-2 flex flex-row gap-2 items-center"
+                            className="btn text-xs flex flex-row gap-2 items-center"
                             onClick={() => handleSubServiceItemEdit(item.id)}
                           >
                             <PencilIcon className="w-3 h-3" />

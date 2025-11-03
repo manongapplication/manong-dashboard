@@ -16,8 +16,7 @@ function toReadable(value: string) {
 }
 
 export const serviceItemStatusOptions = Object.entries(ServiceItemStatus).map(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ([key, value]) => ({
+  ([, value]) => ({
     label: toReadable(value),
     value,
   })

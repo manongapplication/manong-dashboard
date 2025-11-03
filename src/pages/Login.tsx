@@ -11,6 +11,8 @@ type LoginForm = {
 
 const Login: React.FC = () => {
 
+  const baseApiUrl = import.meta.env.VITE_API_URL;
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,7 +36,7 @@ const Login: React.FC = () => {
   }
 
   const onSubmit: SubmitHandler<LoginForm> = (data) => {
-    axios.post("https://bowless-merry-turfier.ngrok-free.app/api/login", data)
+    axios.post(`${baseApiUrl}/login`, data)
       .then((response) => {
         clearMessages();
         if (response.data.token != null) {

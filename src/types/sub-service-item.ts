@@ -12,9 +12,9 @@ export interface SubServiceItem {
   status: ServiceItemStatus;
 
   /* For editing */
-  markDelete?: boolean;
+  markAsDelete?: boolean;
   markColorEditing?: boolean;
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

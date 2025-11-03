@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import type { LucideProps } from "lucide-react";
 import type { ForwardRefExoticComponent, RefAttributes } from "react";
 
@@ -19,7 +20,7 @@ const StatsCard: React.FC<StatsCard> = ({
   bgColor
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-center gap-4 hover:shadow-md transition-shadow">
+    <div className={clsx(localStorage.getItem("theme") == 'dark' ? "border-slate-700" : "bg-white border-slate-200", "rounded-xl shadow-sm border p-6 flex items-center gap-4 hover:shadow-md transition-shadow")}>
       <div className={`${bgColor} ${color} p-3 rounded-lg`}>
         <Icon size={24} />
       </div>

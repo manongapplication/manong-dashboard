@@ -443,7 +443,7 @@ const Dashboard = () => {
   }, [hideDeleted, manongs]);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -486,7 +486,7 @@ const Dashboard = () => {
         )}
 
         {/* Tabs and Table Container */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className={clsx(localStorage.getItem("theme") == 'dark' ? "border-slate-700" : "bg-white border-slate-200", "rounded-xl shadow-sm borde overflow-hidden")}>
           {/* Tabs */}
           <div className="border-b border-slate-200 px-6">
             <div className="flex gap-8 overflow-x-auto">

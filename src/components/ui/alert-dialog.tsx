@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import React from "react";
 
 interface AlertDialogProps {
@@ -23,12 +24,12 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
       onClick={onCancel} // backdrop click = cancel
     >
       <div
-        className="bg-white rounded-xl shadow-lg w-full max-w-sm mx-4 relative animate-fadeIn"
+        className={clsx(localStorage.getItem("theme") == 'dark' ? "bg-slate-800" : "bg-white", " rounded-xl shadow-lg w-full max-w-sm mx-4 relative animate-fadeIn")}
         onClick={(e) => e.stopPropagation()} // prevent backdrop close
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+          <h3 className="text-lg font-semibold">{title}</h3>
           <button
             onClick={onCancel}
             className="text-slate-400 hover:text-slate-600"
@@ -38,7 +39,7 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
         </div>
 
         {/* Message */}
-        <div className="p-5 text-slate-700 text-sm">{message}</div>
+        <div className="p-5 text-sm">{message}</div>
 
         {/* Footer */}
         <div className="flex justify-end gap-3 p-4 border-t border-slate-200">

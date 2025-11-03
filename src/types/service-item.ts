@@ -6,14 +6,14 @@ export interface ServiceItem {
   description: string;
   priceMin: number;
   priceMax: number;
-  ratePerKm: number;
+  ratePerKm?: number;
   iconName?: string | null;
   iconColor: string;
   iconTextColor: string;
   status: ServiceItemStatus;
 
   /* For editing */
-  markDelete?: boolean;
+  markAsDelete?: boolean;
   markColorEditing?: boolean;
 
   subServiceItems: SubServiceItem[];

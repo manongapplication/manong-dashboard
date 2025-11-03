@@ -1,23 +1,21 @@
-import type { ServicePageForm } from "@/pages/ServicesPage";
 import type { ServiceItem } from "@/types"
 import { getIconComponent } from "@/utils/icon-map";
+import clsx from "clsx";
 import { Undo, X } from "lucide-react";
-import type { useForm } from "react-hook-form";
 
 interface ServiceItemCardProps {
   serviceItem: ServiceItem;
   isEditing: boolean;
-  form: ReturnType<typeof useForm<ServicePageForm>>;
-  index: number;
-  onClickCard: (id: number) => void,
-  onDelete: (id: number) => void,
+  onClickCard: (id: number) => void;
+  onDelete: (id: number) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onChangeValue: (id: number, key: string, value: any) => void;
 }
 
-const ServiceItemCard: React.FC<ServiceItemCardProps> = ({ serviceItem, isEditing, form, index, onClickCard, onDelete }) => {
+const ServiceItemCard: React.FC<ServiceItemCardProps> = ({ serviceItem, isEditing, onClickCard, onDelete, onChangeValue }) => {
   const Icon = getIconComponent(serviceItem.iconName ?? '');
-  const DeleteIcon = serviceItem.markDelete ? Undo : X;
-  
-  const { register } = form;
+  const DeleteIcon = serviceItem.markAsDelete ? Undo : X;
+
   return (
     <div className="relative block cursor-pointer">
       {isEditing && (
@@ -45,18 +43,18 @@ const ServiceItemCard: React.FC<ServiceItemCardProps> = ({ serviceItem, isEditin
             e.stopPropagation();
             onClickCard(serviceItem.id);
           }}
-          className="border rounded-2xl p-3 sm:p-4 text-center transition-all peer-checked:border-[#034B57] peer-checked:bg-[#04697D] hover:border-[#04697D] w-12 h-12 sm:w-14 sm:h-14 text-white flex items-center justify-center text-sm sm:text-base"
+          className={clsx(localStorage.getItem("theme") == 'dark' && "border-slate-700", "border rounded-2xl p-3 sm:p-4 text-center transition-all peer-checked:border-[#034B57] peer-checked:bg-[#04697D] hover:border-[#04697D] w-12 h-12 sm:w-14 sm:h-14 text-white flex items-center justify-center text-sm sm:text-base")}
         >
           <Icon className="w-5 h-5"  style={{ color: serviceItem?.iconTextColor }} />
         </div>
         {isEditing ? (
           <input
-            {...register(`services.${index}.title` as const)}
             defaultValue={serviceItem.title}
             type="text" 
             className="input text-center" 
             placeholder="Service Name" 
-            disabled={serviceItem.markDelete}
+            disabled={serviceItem.markAsDelete}
+            onChange={(e) => onChangeValue(serviceItem.id, 'title', e.target.value)}
           />
         ) : (
           <p 

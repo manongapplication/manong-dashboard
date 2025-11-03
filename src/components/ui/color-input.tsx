@@ -1,7 +1,5 @@
-import type { ServicePageForm } from "@/pages/ServicesPage";
 import { colorOptions } from "@/utils/color-utils";
 import CreatableSelect from "react-select/creatable";
-import { useForm } from "react-hook-form";
 import type { ServiceItem } from "@/types";
 
 type ColorOption = { value: string; label: string };
@@ -10,7 +8,6 @@ export default function ColorInput({
   selectedColorInput,
   setSelectedColorInput,
   currentValue,
-  form,
   setServicesItem,
   selectedId,
   className,
@@ -18,13 +15,10 @@ export default function ColorInput({
   selectedColorInput: string;
   setSelectedColorInput: (val: string) => void;
   currentValue: string;
-  form: ReturnType<typeof useForm<ServicePageForm>>;
   setServicesItem: React.Dispatch<React.SetStateAction<ServiceItem[] | undefined>>;
   selectedId: number;
   className?: string;
 }) {
-  const { setValue, } = form;
-
   return (
     <CreatableSelect<ColorOption, false>
       options={colorOptions}
@@ -33,8 +27,6 @@ export default function ColorInput({
         if (!opt) return;
         const val = opt.value;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setValue(`services.${selectedId}.${selectedColorInput}` as any, val);
         setServicesItem(prev =>
           prev
             ? prev.map(item =>

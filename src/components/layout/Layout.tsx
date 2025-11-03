@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Wrench } from "lucide-react";
+import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Wrench, Moon, Sun } from "lucide-react";
 
 const Layout: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -15,49 +16,59 @@ const Layout: React.FC = () => {
     { to: "/settings", label: "Settings", icon: Settings },
   ];
 
-  // Close dropdown when clicking outside
+  // 🔹 Handle clicks outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+    const theme = localStorage.getItem("theme");
+  
+    useEffect(() => {
+      document.querySelector("html")?.setAttribute("data-theme", theme ?? 'light');
+    }, [theme]);
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
+
   const handleLogout = () => {
-    // Remove token from localStorage
-    localStorage.removeItem('token');
-    
-    // Close dropdown
+    localStorage.removeItem("token");
     setDropdownOpen(false);
-    
-    // Redirect to login page (adjust path as needed)
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
-    <div className="flex min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
+    <div className="flex min-h-screen bg-base-100 text-base-content transition-colors duration-300">
       {/* Sidebar */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-base-200 border-r border-base-300 transform transition-transform duration-300 ease-in-out
         ${menuOpen ? "translate-x-0" : "-translate-x-full"} 
         md:translate-x-0`}
       >
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+        <div className="flex items-center justify-between p-6 border-b border-base-300">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-light-cyan rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">M</span>
             </div>
-            <h1 className="text-xl font-bold bg-gradient-light-cyan bg-clip-text text-transparent">
-              Manong
-            </h1>
+            <h1 className="text-xl font-bold text-primary">Manong</h1>
           </div>
           <button
             onClick={() => setMenuOpen(false)}
-            className="md:hidden text-slate-600 hover:text-blue-600 transition-colors"
+            className="md:hidden text-base-content/70 hover:text-primary transition-colors"
           >
             <X size={20} />
           </button>
@@ -72,17 +83,13 @@ const Layout: React.FC = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                   isActive
-                    ? "bg-teal-500 text-white shadow-lg shadow-teal-500/30"
-                    : "text-slate-700 hover:bg-slate-100"
+                    ? "bg-primary text-primary-content shadow-md"
+                    : "text-base-content/70 hover:bg-base-300"
                 }`
               }
             >
-              {({ isActive }) => (
-                <>
-                  <Icon size={18} className={isActive ? "text-white" : "text-slate-500"} />
-                  {label}
-                </>
-              )}
+              <Icon size={18} />
+              {label}
             </NavLink>
           ))}
         </nav>
@@ -99,46 +106,56 @@ const Layout: React.FC = () => {
       {/* Main Section */}
       <div className="flex flex-col flex-1 w-full md:w-[calc(100%-16rem)]">
         {/* Top Bar */}
-        <header className="flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 sticky top-0 z-20">
+        <header className="flex items-center justify-between bg-base-200/80 backdrop-blur-md border-b border-base-300 px-6 py-4 sticky top-0 z-20">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="text-slate-700 hover:text-blue-600 transition-colors md:hidden"
+            className="text-base-content/70 hover:text-primary transition-colors md:hidden"
           >
             <Menu size={24} />
           </button>
-          <h2 className="text-lg font-semibold text-slate-800">Dashboard</h2>
-          <div className="w-6 md:hidden" />
-          
-          {/* User Avatar with Dropdown - Desktop Only */}
-          <div className="hidden md:flex items-center gap-3 relative" ref={dropdownRef}>
-            <div className="text-right">
-              <p className="text-sm font-medium text-slate-800">Admin</p>
-              <p className="text-xs text-slate-500">Super Admin</p>
-            </div>
+
+          <h2 className="text-lg font-semibold">Dashboard</h2>
+
+          <div className="flex items-center gap-4" ref={dropdownRef}>
+            {/* 🌙 Dark Mode Toggle */}
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="bg-gradient-primary w-10 h-10 rounded-full flex items-center justify-center hover:shadow-lg hover:shadow-teal-500/30 transition-all"
+              onClick={toggleDarkMode}
+              className="btn btn-ghost btn-sm flex items-center gap-2"
             >
-              <span className="text-white font-semibold text-sm">A</span>
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              <span className="hidden md:inline text-sm">{darkMode ? "Light" : "Dark"}</span>
             </button>
 
-            {/* Dropdown Menu */}
-            {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  <LogOut size={16} className="text-slate-500" />
-                  Logout
-                </button>
+            {/* 👤 User Dropdown */}
+            <div className="hidden md:flex items-center gap-3 relative">
+              <div className="text-right">
+                <p className="text-sm font-medium">Admin</p>
+                <p className="text-xs opacity-70">Super Admin</p>
               </div>
-            )}
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="bg-primary w-10 h-10 rounded-full flex items-center justify-center hover:shadow-md transition-all"
+              >
+                <span className="text-primary-content font-semibold text-sm">A</span>
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-base-200 rounded-lg shadow-lg border border-base-300 py-1 z-50">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-base-300 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 bg-base-100">
           <Outlet />
         </main>
       </div>

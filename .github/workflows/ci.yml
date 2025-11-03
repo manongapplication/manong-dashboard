@@ -21,11 +21,8 @@ jobs:
 
       - name: Build Dashboard
         run: |
-          if [ -f "package.json" ] && grep -q '"build"' package.json; then
-            echo "Running npm build..."
+          if [ -f "package.json" ] && npm run | grep build; then
             npm run build
-          else
-            echo "No build script found, skipping..."
           fi
 
       - name: Deploy to VPS
@@ -51,7 +48,7 @@ jobs:
             git reset --hard
             git pull origin main
 
-            # Deploy build output if exists
+            # Optional: if you have a build output (e.g., dist)
             if [ -d "dist" ]; then
               rm -rf /var/www/html/manong-dashboard
               mv dist /var/www/html/manong-dashboard

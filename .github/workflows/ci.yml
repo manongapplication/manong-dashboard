@@ -11,20 +11,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository
       - uses: actions/checkout@v3
 
+      # Install dependencies
       - name: Install dependencies
         run: |
           if [ -f "package.json" ]; then
             npm ci
           fi
 
+      # Build the dashboard
       - name: Build Dashboard
         run: |
           if [ -f "package.json" ] && npm run | grep build; then
             npm run build
           fi
 
+      # Deploy to VPS
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -34,13 +38,13 @@ jobs:
           port: 22
           script: |
             DASHBOARD_DIR="/var/www/manong-dashboard"
+            NGINX_ROOT="/var/www/html/manong-dashboard"
 
-            # Ensure folder exists
+            # Ensure the repo folder exists
             mkdir -p $DASHBOARD_DIR
 
-            # Pull latest code
+            # Clone repo if it doesn't exist
             if [ ! -d "$DASHBOARD_DIR/.git" ]; then
-              rm -rf $DASHBOARD_DIR
               git clone https://github.com/manongapplication/manong-dashboard.git $DASHBOARD_DIR
             fi
 
@@ -48,12 +52,17 @@ jobs:
             git reset --hard
             git pull origin main
 
-            # Optional: if you have a build output (e.g., dist)
-            if [ -d "dist" ]; then
-              rm -rf /var/www/html/manong-dashboard
-              mv dist /var/www/html/manong-dashboard
-            else
-              rsync -a --delete ./ /var/www/html/manong-dashboard/
-            fi
+            # Install & build
+            npm ci
+            npm run build
 
+            # Deploy build to Nginx root
+            mkdir -p $NGINX_ROOT
+            rsync -a --delete dist/ $NGINX_ROOT/
+
+            # Set proper permissions
+            chown -R www-data:www-data $NGINX_ROOT
+            chmod -R 755 $NGINX_ROOT
+
+            # Reload Nginx
             systemctl reload nginx || true

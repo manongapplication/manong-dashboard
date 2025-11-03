@@ -56,7 +56,7 @@ const Login: React.FC = () => {
     
   };
   return (
-    <div className="flex min-h-screen justify-center items-center bg-gray-100">
+    <div className="flex min-h-screen justify-center items-center">
       <div className="flex flex-col gap-4">
         <h3 className="text-2xl font-bold text-center">Login</h3>
           <form

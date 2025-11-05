@@ -13,6 +13,7 @@ import ColorInput from "@/components/ui/color-input";
 import Modal from "@/components/ui/modal";
 import SubServiceItemCard from "@/components/ui/sub-service-item-card";
 import { Icon } from "@iconify/react";
+import { Helmet } from "react-helmet";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -436,433 +437,442 @@ const ServicesPage: React.FC = () => {
   };
 
   return (
-    <div className="p-2 sm:p-4">
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <label className="block mb-1 font-medium text-sm sm:text-base">
-          Services Type
-        </label>
-        <div className="flex flex-col justify-center">
-          {/* Action Buttons */}
-          <div className="flex flex-row justify-between gap-2 mb-4 flex-wrap">
-            <button 
-              type="button" 
-              className="btn btn-sm sm:btn-md" 
-              onClick={() => setResetDialogOpen(true)}
-            >
-              Reset to Defaults
-            </button>
-            <div className="flex flex-row justify-end">
-              <div className="flex flex-row gap-2">
-                {hasChanges && (
-                  <>
-                    <button 
-                      type="button" 
-                      className="btn btn-sm sm:btn-md" 
-                      onClick={saveData}
-                    >
-                      Save
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn btn-sm sm:btn-md" 
-                      onClick={resetData}
-                    >
-                      Reset
-                    </button>
-                  </>
-                )}
-                <button type="button" className={clsx("btn btn-sm sm:btn-md", isEditing && "btn bg-gray-500!")} onClick={() => setIsEditing((prev) => !prev)}>
-                  Edit Services
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Color Picker Modal for Mobile */}
-          {isEditing && showColorPicker && (
-            <>
-              {/* Backdrop */}
-              <div 
-                className="fixed inset-0 bg-black/30 bg-opacity-50 z-40"
-                onClick={handleCloseHexColorPicker}
-              />
-              
-              {/* Modal */}
-              <div className={clsx(localStorage.getItem("theme") == 'dark' ? "bg-slate-800" : "bg-white", "fixed inset-x-4 top-1/2 -translate-y-1/2 sm:inset-x-auto sm:right-4 sm:top-20 sm:translate-y-0 rounded-lg shadow-xl z-50 p-4 max-w-sm mx-auto sm:mx-0")}>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-lg">Pick Color</h3>
-                  <button
-                    onClick={handleCloseHexColorPicker}
-                    className="p-1 hover:bg-gray-100 rounded"
-                  >
-                    <X className="w-5 h-5" />
+    <>
+      <Helmet>
+        <title>Services Management - Manong</title>
+        <meta
+          name="description"
+          content="Manage and edit services in the Manong admin dashboard. Add new services, update details, or remove existing services efficiently."
+        />
+      </Helmet>
+      <div className="p-2 sm:p-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <label className="block mb-1 font-medium text-sm sm:text-base">
+            Services Type
+          </label>
+          <div className="flex flex-col justify-center">
+            {/* Action Buttons */}
+            <div className="flex flex-row justify-between gap-2 mb-4 flex-wrap">
+              <button 
+                type="button" 
+                className="btn btn-sm sm:btn-md" 
+                onClick={() => setResetDialogOpen(true)}
+              >
+                Reset to Defaults
+              </button>
+              <div className="flex flex-row justify-end">
+                <div className="flex flex-row gap-2">
+                  {hasChanges && (
+                    <>
+                      <button 
+                        type="button" 
+                        className="btn btn-sm sm:btn-md" 
+                        onClick={saveData}
+                      >
+                        Save
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-sm sm:btn-md" 
+                        onClick={resetData}
+                      >
+                        Reset
+                      </button>
+                    </>
+                  )}
+                  <button type="button" className={clsx("btn btn-sm sm:btn-md", isEditing && "btn bg-gray-500!")} onClick={() => setIsEditing((prev) => !prev)}>
+                    Edit Services
                   </button>
                 </div>
-                <HexColorPicker
-                  color={selectedColorInput === 'iconColor' ? selectedIconColor : selectedIconTextColor}
-                  onChange={(color) => {
-                    const key = selectedColorInput;
-                    setServicesItem((prev) => 
-                      prev
-                        ? prev.map((item) =>
-                          item.id === selectedId ? { ...item, [key]: color } : item,
-                        )
-                        : []
-                    );
-                  }}
-                  style={{ width: '100%' }}
-                  className="z-99999"
+              </div>
+            </div>
+
+            {/* Color Picker Modal for Mobile */}
+            {isEditing && showColorPicker && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="fixed inset-0 bg-black/30 bg-opacity-50 z-40"
+                  onClick={handleCloseHexColorPicker}
                 />
-                <div className="mt-4 flex gap-4 items-center justify-center">
-                  <div className="flex flex-col gap-1 sm:gap-2 items-center">
-                    <div
-                      style={{ backgroundColor: selectedIconColor }}
-                      className="border rounded-2xl p-3 sm:p-4 text-center transition-all peer-checked:border-[#034B57] peer-checked:bg-[#04697D] hover:border-[#04697D] w-12 h-12 sm:w-14 sm:h-14 text-white flex items-center justify-center text-sm sm:text-base"
+                
+                {/* Modal */}
+                <div className={clsx(localStorage.getItem("theme") == 'dark' ? "bg-slate-800" : "bg-white", "fixed inset-x-4 top-1/2 -translate-y-1/2 sm:inset-x-auto sm:right-4 sm:top-20 sm:translate-y-0 rounded-lg shadow-xl z-50 p-4 max-w-sm mx-auto sm:mx-0")}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold text-lg">Pick Color</h3>
+                    <button
+                      onClick={handleCloseHexColorPicker}
+                      className="p-1 hover:bg-gray-100 rounded"
                     >
-                      {selectedIconName && (() => {
-                        const Icon = getIconComponent(selectedSubServiceId ? selectedSubServiceIconName! : selectedIconName);
-                        return <Icon className="w-5 h-5" style={{ color: selectedIconTextColor }} />;
-                      })()}
-                    </div>
-                    <p 
-                      className="text-center text-xs sm:text-sm"
-                    >
-                      {selectedServiceTitle}
-                    </p>
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
-                  {!selectedSubServiceId && (
-                    <ColorInput
-                      selectedColorInput="iconColor"
-                      setSelectedColorInput={setSelectedColorInput}
-                      currentValue={selectedIconColor ?? ''}
-                      setServicesItem={setServicesItem}
-                      selectedId={selectedId}
-                      className="flex-1 text-sm"
-                    />
-                  )}
-                </div>
-                {!selectedSubServiceId && (
-                  <div className="mt-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">Icon Color:</span>
-                      
+                  <HexColorPicker
+                    color={selectedColorInput === 'iconColor' ? selectedIconColor : selectedIconTextColor}
+                    onChange={(color) => {
+                      const key = selectedColorInput;
+                      setServicesItem((prev) => 
+                        prev
+                          ? prev.map((item) =>
+                            item.id === selectedId ? { ...item, [key]: color } : item,
+                          )
+                          : []
+                      );
+                    }}
+                    style={{ width: '100%' }}
+                    className="z-99999"
+                  />
+                  <div className="mt-4 flex gap-4 items-center justify-center">
+                    <div className="flex flex-col gap-1 sm:gap-2 items-center">
+                      <div
+                        style={{ backgroundColor: selectedIconColor }}
+                        className="border rounded-2xl p-3 sm:p-4 text-center transition-all peer-checked:border-[#034B57] peer-checked:bg-[#04697D] hover:border-[#04697D] w-12 h-12 sm:w-14 sm:h-14 text-white flex items-center justify-center text-sm sm:text-base"
+                      >
+                        {selectedIconName && (() => {
+                          const Icon = getIconComponent(selectedSubServiceId ? selectedSubServiceIconName! : selectedIconName);
+                          return <Icon className="w-5 h-5" style={{ color: selectedIconTextColor }} />;
+                        })()}
+                      </div>
+                      <p 
+                        className="text-center text-xs sm:text-sm"
+                      >
+                        {selectedServiceTitle}
+                      </p>
+                    </div>
+                    {!selectedSubServiceId && (
                       <ColorInput
-                        selectedColorInput="iconTextColor"
+                        selectedColorInput="iconColor"
                         setSelectedColorInput={setSelectedColorInput}
-                        currentValue={selectedIconTextColor ?? ''}
+                        currentValue={selectedIconColor ?? ''}
                         setServicesItem={setServicesItem}
                         selectedId={selectedId}
                         className="flex-1 text-sm"
                       />
-
-                    </div>
+                    )}
                   </div>
-                )}
-                <div className="mt-4 px-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium text-sm">Selected Icon{selectedSubServiceId && '(Sub)'}:</span>
-                    <span className="text-sm text-gray-700">
-                      {selectedSubServiceId ? selectedSubServiceIconName : selectedIconName}
-                    </span>
-                  </div>
-                  <IconifyPicker
-                    value={selectedSubServiceId ? selectedSubServiceIconName : selectedIconName}
-                    onChange={(value) => {
-                      if (!servicesItem) return;
+                  {!selectedSubServiceId && (
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">Icon Color:</span>
+                        
+                        <ColorInput
+                          selectedColorInput="iconTextColor"
+                          setSelectedColorInput={setSelectedColorInput}
+                          currentValue={selectedIconTextColor ?? ''}
+                          setServicesItem={setServicesItem}
+                          selectedId={selectedId}
+                          className="flex-1 text-sm"
+                        />
 
-                      if (selectedSubServiceId) {
-                        // Update state safely
-                        setServicesItem((prev) => {
-                          if (!prev) return prev;
-                          return prev.map((item) => {
-                            if (item.id !== selectedId) return item;
-                            return {
-                              ...item,
-                              subServiceItems: item.subServiceItems.map((sub) =>
-                                sub.id === selectedSubServiceId
-                                  ? { ...sub, iconName: value ?? '' }
-                                  : sub
-                              ),
-                            };
-                          });
-                        });
-                      } else {
-                        // Main service icon update
-                        setServicesItem((prev) => {
-                          if (!prev) return prev;
-                          return prev.map((item) =>
-                            item.id === selectedId ? { ...item, iconName: value ?? '' } : item
-                          );
-                        });
-                      }
-                    }}
-                  />
-
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Services Grid */}
-          <div className="rounded-lg">
-            <div 
-              id="serviceTypeArea" 
-              className="p-4 sm:p-8 lg:p-12 card bg-base-100 shadow-sm w-full max-w-6xl mx-auto"
-            >
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                  <p className="mt-4 text-slate-600">Loading services...</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                  {servicesItem && servicesItem.map((item) => 
-                    <div key={item.id} className={clsx(item.markAsDelete && "bg-red-200 rounded-2xl")}>
-                      <ServiceItemCard 
-                        serviceItem={item}
-                        isEditing={isEditing} 
-                        onClickCard={(id) => {
-                          const clickedItem = servicesItem.find(item => item.id === id);
-                          if (!clickedItem) return;
-
-                          setSelectedSubServiceId(null);
-                          setSelectedId(id);
-                          if (!isEditing) return;
-                          setShowColorPicker(true);
-                        }}
-                        onDelete={(id) => {
-                          const clickedItem = servicesItem.find(item => item.id === id);
-                          if (!clickedItem) return;
-
-                          if (clickedItem.markAsDelete) {
-                            handleUndoDelete();
-                            return;
-                          }
-
-                          setSelectedId(id);
-                          setDeletedId(id);
-                          setConfirmDialogOpen(true);
-                        }}
-                        onChangeValue={onChangeValue}
-                      />
-                      {isEditing && (
-                        <div className="flex flex-col justify-center gap-2 mt-2 mb-2">
-                          <select
-                            value={item.status}
-                            className="select"
-                            onChange={(e) => onChangeValue(item.id, 'status', e.target.value)}
-                          >
-                            {serviceItemStatusOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            className="btn text-xs flex flex-row gap-2 items-center"
-                            onClick={() => handleSubServiceItemEdit(item.id)}
-                          >
-                            <PencilIcon className="w-3 h-3" />
-                            Sub Services
-                          </button>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   )}
-                  <label 
-                    className="block cursor-pointer" 
-                    onClick={handleAddServiceItem}
-                  >
-                    <div className="flex flex-col gap-1 sm:gap-2 items-center">
-                      <div
-                        className="border-2 border-dashed border-gray-300 rounded-2xl p-3 sm:p-4 text-center hover:border-[#04697D] transition-all w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-gray-400"
-                      >
-                        <PlusSquare className="w-5 h-5" />
-                      </div>
-                      <p className="text-center text-xs sm:text-sm text-gray-500">Add</p>
+                  <div className="mt-4 px-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium text-sm">Selected Icon{selectedSubServiceId && '(Sub)'}:</span>
+                      <span className="text-sm text-gray-700">
+                        {selectedSubServiceId ? selectedSubServiceIconName : selectedIconName}
+                      </span>
                     </div>
-                  </label>
+                    <IconifyPicker
+                      value={selectedSubServiceId ? selectedSubServiceIconName : selectedIconName}
+                      onChange={(value) => {
+                        if (!servicesItem) return;
+
+                        if (selectedSubServiceId) {
+                          // Update state safely
+                          setServicesItem((prev) => {
+                            if (!prev) return prev;
+                            return prev.map((item) => {
+                              if (item.id !== selectedId) return item;
+                              return {
+                                ...item,
+                                subServiceItems: item.subServiceItems.map((sub) =>
+                                  sub.id === selectedSubServiceId
+                                    ? { ...sub, iconName: value ?? '' }
+                                    : sub
+                                ),
+                              };
+                            });
+                          });
+                        } else {
+                          // Main service icon update
+                          setServicesItem((prev) => {
+                            if (!prev) return prev;
+                            return prev.map((item) =>
+                              item.id === selectedId ? { ...item, iconName: value ?? '' } : item
+                            );
+                          });
+                        }
+                      }}
+                    />
+
+                  </div>
                 </div>
-              )}
+              </>
+            )}
+
+            {/* Services Grid */}
+            <div className="rounded-lg">
+              <div 
+                id="serviceTypeArea" 
+                className="p-4 sm:p-8 lg:p-12 card bg-base-100 shadow-sm w-full max-w-6xl mx-auto"
+              >
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p className="mt-4 text-slate-600">Loading services...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+                    {servicesItem && servicesItem.map((item) => 
+                      <div key={item.id} className={clsx(item.markAsDelete && "bg-red-200 rounded-2xl")}>
+                        <ServiceItemCard 
+                          serviceItem={item}
+                          isEditing={isEditing} 
+                          onClickCard={(id) => {
+                            const clickedItem = servicesItem.find(item => item.id === id);
+                            if (!clickedItem) return;
+
+                            setSelectedSubServiceId(null);
+                            setSelectedId(id);
+                            if (!isEditing) return;
+                            setShowColorPicker(true);
+                          }}
+                          onDelete={(id) => {
+                            const clickedItem = servicesItem.find(item => item.id === id);
+                            if (!clickedItem) return;
+
+                            if (clickedItem.markAsDelete) {
+                              handleUndoDelete();
+                              return;
+                            }
+
+                            setSelectedId(id);
+                            setDeletedId(id);
+                            setConfirmDialogOpen(true);
+                          }}
+                          onChangeValue={onChangeValue}
+                        />
+                        {isEditing && (
+                          <div className="flex flex-col justify-center gap-2 mt-2 mb-2">
+                            <select
+                              value={item.status}
+                              className="select"
+                              onChange={(e) => onChangeValue(item.id, 'status', e.target.value)}
+                            >
+                              {serviceItemStatusOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="btn text-xs flex flex-row gap-2 items-center"
+                              onClick={() => handleSubServiceItemEdit(item.id)}
+                            >
+                              <PencilIcon className="w-3 h-3" />
+                              Sub Services
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <label 
+                      className="block cursor-pointer" 
+                      onClick={handleAddServiceItem}
+                    >
+                      <div className="flex flex-col gap-1 sm:gap-2 items-center">
+                        <div
+                          className="border-2 border-dashed border-gray-300 rounded-2xl p-3 sm:p-4 text-center hover:border-[#04697D] transition-all w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-gray-400"
+                        >
+                          <PlusSquare className="w-5 h-5" />
+                        </div>
+                        <p className="text-center text-xs sm:text-sm text-gray-500">Add</p>
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="p-4">
-        {!isEditing && servicesItem?.find((item) => item.id === selectedId)?.subServiceItems.length ? (
-          <>
-            {/* Search Input for Non-Editing Mode */}
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search sub-services..."
-                  value={nonEditingSubServiceSearchQuery}
-                  onChange={(e) => setNonEditingSubServiceSearchQuery(e.target.value)}
-                  className={clsx(localStorage.getItem("theme") == 'dark' ? "border-gray-700" : "border-gray-300", "w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500")}
-                />
+        <div className="p-4">
+          {!isEditing && servicesItem?.find((item) => item.id === selectedId)?.subServiceItems.length ? (
+            <>
+              {/* Search Input for Non-Editing Mode */}
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search sub-services..."
+                    value={nonEditingSubServiceSearchQuery}
+                    onChange={(e) => setNonEditingSubServiceSearchQuery(e.target.value)}
+                    className={clsx(localStorage.getItem("theme") == 'dark' ? "border-gray-700" : "border-gray-300", "w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500")}
+                  />
+                  {nonEditingSubServiceSearchQuery && (
+                    <button
+                      onClick={() => setNonEditingSubServiceSearchQuery('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 {nonEditingSubServiceSearchQuery && (
-                  <button
-                    onClick={() => setNonEditingSubServiceSearchQuery('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Found {filteredNonEditingSubServices.length} result{filteredNonEditingSubServices.length !== 1 ? 's' : ''}
+                  </p>
                 )}
               </div>
-              {nonEditingSubServiceSearchQuery && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Found {filteredNonEditingSubServices.length} result{filteredNonEditingSubServices.length !== 1 ? 's' : ''}
-                </p>
+
+              {/* Sub-Services Grid */}
+              {filteredNonEditingSubServices.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No sub-services found matching your search.
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-2 gap-2">
+                    {paginatedNonEditingSubServices.map((subItem) => (
+                      <SubServiceItemCard
+                        key={subItem.id}
+                        subServiceItem={subItem}
+                        isEditing={isEditing}
+                        onClickCard={() => {}}
+                        onChangeSubValue={onChangeSubValue}
+                        onDelete={() => {}}
+                      />
+                    ))}
+                  </div>
+                  <Pagination 
+                    currentPage={nonEditingCurrentPage}
+                    totalPages={nonEditingTotalPages}
+                    onPageChange={setNonEditingCurrentPage}
+                  />
+                </>
+              )}
+            </>
+          ) : null}
+        </div>
+
+        <AlertDialog
+          isOpen={isConfirmDialogOpen}
+          title="Delete Service"
+          message={`Are you sure you want to delete '${servicesItem?.find(item => item.id === selectedId)?.title ?? ""}' service? You can still undo this before saving.`}
+          onConfirm={handleDelete}
+          onCancel={() => {
+            setConfirmDialogOpen(false);
+            setDeletedId(-1);
+          }}
+        />
+
+        <AlertDialog
+          isOpen={isResetDialogOpen}
+          title="Reset to Defaults"
+          message="Are you sure you want to reset to default services? This will replace all current services and sub-services with the original defaults and save immediately."
+          onConfirm={resetToDefaults}
+          onCancel={() => setResetDialogOpen(false)}
+        />
+
+        <Modal
+          isOpen={isModalOpen}
+          title={modalTitle}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSubServiceSearchQuery('');
+            setModalCurrentPage(1);
+          }}
+          footer={
+            <>
+              {/* Add Button */}
+              <div
+                onClick={() => handleAddSubServiceItem(selectedId!)}
+                className={clsx(localStorage.getItem("theme") == 'dark' && "border-slate-600", "flex flex-row border rounded-lg p-4 justify-center items-center gap-2 cursor-pointer hover:bg-gray-200 transition-all duration-300")}
+              >
+                <Icon icon="material-symbols:add" />
+                <p>Add Sub-Service Item</p>
+              </div>
+            </>
+          }
+        >
+          {/* Search Input */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search sub-services..."
+                value={subServiceSearchQuery}
+                onChange={(e) => setSubServiceSearchQuery(e.target.value)}
+                className={clsx(localStorage.getItem("theme") == 'dark' ? "border-gray-700" : "border-gray-300", "w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500")}
+              />
+              {subServiceSearchQuery && (
+                <button
+                  onClick={() => setSubServiceSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               )}
             </div>
+            {subServiceSearchQuery && (
+              <p className="text-xs text-gray-500 mt-1">
+                Found {filteredSubServices.length} result{filteredSubServices.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
 
-            {/* Sub-Services Grid */}
-            {filteredNonEditingSubServices.length === 0 ? (
+          {/* Sub-Services List */}
+          <div>
+            {filteredSubServices.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No sub-services found matching your search.
+                {subServiceSearchQuery ? 'No sub-services found matching your search.' : 'No sub-services available.'}
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-2 gap-2">
-                  {paginatedNonEditingSubServices.map((subItem) => (
-                    <SubServiceItemCard
-                      key={subItem.id}
-                      subServiceItem={subItem}
-                      isEditing={isEditing}
-                      onClickCard={() => {}}
-                      onChangeSubValue={onChangeSubValue}
-                      onDelete={() => {}}
-                    />
-                  ))}
-                </div>
+                {paginatedModalSubServices.map((subItem) => (
+                  <SubServiceItemCard
+                    key={subItem.id}
+                    subServiceItem={subItem}
+                    isEditing={isEditing}
+                    onClickCard={(id) => {
+                      setSelectedSubServiceId(id);
+                      setShowColorPicker(true);
+                      setIsModalOpen(false);
+                    }}
+                    onChangeSubValue={onChangeSubValue}
+                    onDelete={(id) => {
+                      setServicesItem((prev) =>
+                        prev?.map((item) =>
+                          item.id === selectedId
+                            ? {
+                                ...item,
+                                subServiceItems: item.subServiceItems.map((sub) =>
+                                  sub.id === id ? { ...sub, markAsDelete: !sub.markAsDelete } : sub
+                                ),
+                              }
+                            : item
+                        )
+                      );
+                    }}
+                  />
+                ))}
                 <Pagination 
-                  currentPage={nonEditingCurrentPage}
-                  totalPages={nonEditingTotalPages}
-                  onPageChange={setNonEditingCurrentPage}
+                  currentPage={modalCurrentPage}
+                  totalPages={modalTotalPages}
+                  onPageChange={setModalCurrentPage}
                 />
               </>
             )}
-          </>
-        ) : null}
-      </div>
-
-      <AlertDialog
-        isOpen={isConfirmDialogOpen}
-        title="Delete Service"
-        message={`Are you sure you want to delete '${servicesItem?.find(item => item.id === selectedId)?.title ?? ""}' service? You can still undo this before saving.`}
-        onConfirm={handleDelete}
-        onCancel={() => {
-          setConfirmDialogOpen(false);
-          setDeletedId(-1);
-        }}
-      />
-
-      <AlertDialog
-        isOpen={isResetDialogOpen}
-        title="Reset to Defaults"
-        message="Are you sure you want to reset to default services? This will replace all current services and sub-services with the original defaults and save immediately."
-        onConfirm={resetToDefaults}
-        onCancel={() => setResetDialogOpen(false)}
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        title={modalTitle}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSubServiceSearchQuery('');
-          setModalCurrentPage(1);
-        }}
-        footer={
-          <>
-            {/* Add Button */}
-            <div
-              onClick={() => handleAddSubServiceItem(selectedId!)}
-              className={clsx(localStorage.getItem("theme") == 'dark' && "border-slate-600", "flex flex-row border rounded-lg p-4 justify-center items-center gap-2 cursor-pointer hover:bg-gray-200 transition-all duration-300")}
-            >
-              <Icon icon="material-symbols:add" />
-              <p>Add Sub-Service Item</p>
-            </div>
-          </>
-        }
-      >
-        {/* Search Input */}
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search sub-services..."
-              value={subServiceSearchQuery}
-              onChange={(e) => setSubServiceSearchQuery(e.target.value)}
-              className={clsx(localStorage.getItem("theme") == 'dark' ? "border-gray-700" : "border-gray-300", "w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500")}
-            />
-            {subServiceSearchQuery && (
-              <button
-                onClick={() => setSubServiceSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
-          {subServiceSearchQuery && (
-            <p className="text-xs text-gray-500 mt-1">
-              Found {filteredSubServices.length} result{filteredSubServices.length !== 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
+        </Modal>
 
-        {/* Sub-Services List */}
-        <div>
-          {filteredSubServices.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {subServiceSearchQuery ? 'No sub-services found matching your search.' : 'No sub-services available.'}
-            </div>
-          ) : (
-            <>
-              {paginatedModalSubServices.map((subItem) => (
-                <SubServiceItemCard
-                  key={subItem.id}
-                  subServiceItem={subItem}
-                  isEditing={isEditing}
-                  onClickCard={(id) => {
-                    setSelectedSubServiceId(id);
-                    setShowColorPicker(true);
-                    setIsModalOpen(false);
-                  }}
-                  onChangeSubValue={onChangeSubValue}
-                  onDelete={(id) => {
-                    setServicesItem((prev) =>
-                      prev?.map((item) =>
-                        item.id === selectedId
-                          ? {
-                              ...item,
-                              subServiceItems: item.subServiceItems.map((sub) =>
-                                sub.id === id ? { ...sub, markAsDelete: !sub.markAsDelete } : sub
-                              ),
-                            }
-                          : item
-                      )
-                    );
-                  }}
-                />
-              ))}
-              <Pagination 
-                currentPage={modalCurrentPage}
-                totalPages={modalTotalPages}
-                onPageChange={setModalCurrentPage}
-              />
-            </>
-          )}
-        </div>
-      </Modal>
-
-    </div>
+      </div>
+    </>
   )
 }
 

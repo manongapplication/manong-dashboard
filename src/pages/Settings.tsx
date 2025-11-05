@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Helmet } from "react-helmet";
 
 const Settings: React.FC = () => {
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
@@ -22,28 +23,37 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">Settings</h2>
-
-      <div className="flex items-center justify-between mb-4">
-        <span className="font-medium">Dark Mode</span>
-        <input
-          type="checkbox"
-          className="toggle toggle-primary"
-          checked={theme === "dark"}
-          onChange={toggleTheme}
+    <>
+       <Helmet>
+        <title>Settings - Manong Admin</title>
+        <meta
+          name="description"
+          content="Configure your Manong admin dashboard settings."
         />
+      </Helmet>
+      <div className="max-w-md mx-auto p-6">
+        <h2 className="text-2xl font-bold mb-6">Settings</h2>
+
+        <div className="flex items-center justify-between mb-4">
+          <span className="font-medium">Dark Mode</span>
+          <input
+            type="checkbox"
+            className="toggle toggle-primary"
+            checked={theme === "dark"}
+            onChange={toggleTheme}
+          />
+        </div>
+
+        <div className="divider"></div>
+
+        <button
+          onClick={handleLogout}
+          className="btn btn-error w-full mt-4 text-white"
+        >
+          Logout
+        </button>
       </div>
-
-      <div className="divider"></div>
-
-      <button
-        onClick={handleLogout}
-        className="btn btn-error w-full mt-4 text-white"
-      >
-        Logout
-      </button>
-    </div>
+    </>
   );
 };
 

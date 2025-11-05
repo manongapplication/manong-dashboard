@@ -6,6 +6,7 @@ import type { Manong } from "@/types";
 import Modal from "@/components/ui/modal";
 import ManongCard from "@/components/ui/manong-card";
 import clsx from "clsx";
+import { Helmet } from 'react-helmet';
 
 interface UpdateManongForm {
   firstName: string;
@@ -108,13 +109,35 @@ const Dashboard = () => {
           providerVerifications: item.providerVerifications,
         }));
 
-        setManongs(normalizedManongs);
-        setFilteredManongs(normalizedManongs);
-        
+        // Sort first
+        const sorted = [...normalizedManongs].sort((a, b) => {
+          const dateA = new Date(a.user.createdAt!).getTime();
+          const dateB = new Date(b.user.createdAt!).getTime();
+          return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+
+        setManongs(sorted);
+
+        // Apply tab-based filtering on the *sorted* array
+        const selectedTab = tabs[selectedTabIndex];
+        let filtered = sorted;
+
+        // Hide deleted if needed
+        if (hideDeleted) {
+          filtered = filtered.filter(m => m.user.deletedAt === null);
+        }
+
+        // Filter by selected tab
+        if (selectedTab.status) {
+          filtered = filtered.filter(m => m.user.status === selectedTab.status);
+        }
+
+        setFilteredManongs(filtered);
+
         setTotalPages(data.totalPages || 1);
         setTotalCount(data.totalCount || normalizedManongs.length || 0);
         setCurrentPage(page);
-        
+
         calculateStats(normalizedManongs);
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -335,233 +358,242 @@ const Dashboard = () => {
   }, [hideDeleted, manongs]);
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatsCard title="Total" value={stats.total} Icon={Users} />
-          <StatsCard
-            title="Available"
-            value={stats.available}
-            Icon={CheckCircle}
-            color="text-green-600"
-            bgColor="bg-green-100"
-          />
-          <StatsCard
-            title="Busy"
-            value={stats.busy}
-            Icon={Clock}
-            color="text-orange-600"
-            bgColor="bg-orange-100"
-          />
-          <StatsCard
-            title="Offline"
-            value={stats.offline}
-            Icon={Power}
-            color="text-slate-600"
-            bgColor="bg-slate-100"
-          />
-          <StatsCard
-            title="Suspended"
-            value={stats.suspended}
-            Icon={Ban}
-            color="text-violet-600"
-            bgColor="bg-violet-100"
-          />
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* Tabs and Table Container */}
-        <div className={clsx(localStorage.getItem("theme") == 'dark' ? "border-slate-700" : "bg-white border-slate-200", "rounded-xl shadow-sm borde overflow-hidden")}>
-          {/* Tabs */}
-          <div className="border-b border-slate-200 px-6">
-            <div className="flex gap-8 overflow-x-auto">
-              {tabs.map((tab, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleTabChange(index)}
-                  className={`py-4 px-2 text-sm font-medium whitespace-nowrap transition-colors relative ${
-                    selectedTabIndex === index
-                      ? "text-blue-600"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {tab.label}
-                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-100">
-                    {tab.count}
-                  </span>
-                  {selectedTabIndex === index && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
-                  )}
-                </button>
-              ))}
-            </div>
+    <>
+      <Helmet>
+        <title>Dashboard</title>
+        <meta
+          name="description"
+          content="Admin dashboard for Manong: manage service requests, and monitor manongs."
+        />
+      </Helmet>
+      <div className="min-h-screen p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <StatsCard title="Total" value={stats.total} Icon={Users} />
+            <StatsCard
+              title="Available"
+              value={stats.available}
+              Icon={CheckCircle}
+              color="text-green-600"
+              bgColor="bg-green-100"
+            />
+            <StatsCard
+              title="Busy"
+              value={stats.busy}
+              Icon={Clock}
+              color="text-orange-600"
+              bgColor="bg-orange-100"
+            />
+            <StatsCard
+              title="Offline"
+              value={stats.offline}
+              Icon={Power}
+              color="text-slate-600"
+              bgColor="bg-slate-100"
+            />
+            <StatsCard
+              title="Suspended"
+              value={stats.suspended}
+              Icon={Ban}
+              color="text-violet-600"
+              bgColor="bg-violet-100"
+            />
           </div>
 
-          {selectedItems.size > 0 && (
-            <div className="mt-4 px-4 flex justify-between items-center">
-              <p className="text-sm text-slate-600">{selectedItems.size} selected</p>
-              <button
-                onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                <Trash2 size={16} />
-                Delete Selected
-              </button>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <p className="text-sm">{error}</p>
             </div>
           )}
 
-          {/* Table - Card Layout */}
-          <div className="p-6">
-            {/* Select All */}
-            {filteredManongs.length > 0 && (
-              <div className="mb-4 flex justify-between items-center gap-2 pb-3 border-b border-slate-200">
-                <div className="flex flex-row items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.size === filteredManongs.length && filteredManongs.length > 0}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-slate-600">
-                    {selectedItems.size > 0 ? `${selectedItems.size} selected` : 'Select all'}
-                  </span>
+          {/* Tabs and Table Container */}
+          <div className={clsx(localStorage.getItem("theme") == 'dark' ? "border-slate-700" : "bg-white border-slate-200", "rounded-xl shadow-sm borde overflow-hidden")}>
+            {/* Tabs */}
+            <div className="border-b border-slate-200 px-6">
+              <div className="flex gap-8 overflow-x-auto">
+                {tabs.map((tab, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleTabChange(index)}
+                    className={`py-4 px-2 text-sm font-medium whitespace-nowrap transition-colors relative ${
+                      selectedTabIndex === index
+                        ? "text-blue-600"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {tab.label}
+                    <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-100">
+                      {tab.count}
+                    </span>
+                    {selectedTabIndex === index && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  <input
-                    type="checkbox"
-                    checked={hideDeleted}
-                    onChange={() => {setHideDeleted((prev) => !prev)}}
-                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-slate-600">
-                    Hide deleted
-                  </span>
-                </div>
-
-                <select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                  className="ml-4 px-3 py-1 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            {selectedItems.size > 0 && (
+              <div className="mt-4 px-4 flex justify-between items-center">
+                <p className="text-sm text-slate-600">{selectedItems.size} selected</p>
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                 >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                </select>
+                  <Trash2 size={16} />
+                  Delete Selected
+                </button>
               </div>
             )}
 
-            {/* Loading State */}
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-slate-600">Loading manongs...</p>
-              </div>
-            ) : (
-              <>
-                {/* Manongs List */}
-                <div className="space-y-4">
-                  {filteredManongs.map((m) => (
-                    <ManongCard
-                      key={m.id}
-                      manong={m}
-                      isSelected={selectedItems.has(m.id)}
-                      onToggleSelect={toggleSelectItem}
-                      onDelete={handleDelete}
-                      onUpdate={handleUpdateManong}
-                      onViewDocument={handleViewDocument}
-                      isExpanded={expandedManongs.has(m.id)}
-                      toggleExpand={() => toggleExpand(m.id)}
-                      isDark={localStorage.getItem("theme") == 'dark' ? true : false}
+            {/* Table - Card Layout */}
+            <div className="p-6">
+              {/* Select All */}
+              {filteredManongs.length > 0 && (
+                <div className="mb-4 flex justify-between items-center gap-2 pb-3 border-b border-slate-200">
+                  <div className="flex flex-row items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.size === filteredManongs.length && filteredManongs.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
                     />
-                  ))}
-                </div>
+                    <span className="text-sm text-slate-600">
+                      {selectedItems.size > 0 ? `${selectedItems.size} selected` : 'Select all'}
+                    </span>
 
-                {/* Pagination */}
-                {totalPages > 1 && selectedTabIndex === 0 && (
-                  <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
-                    <div className="text-sm text-slate-600">
-                      Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalCount)} of {totalCount} results
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft size={16} />
-                        Previous
-                      </button>
-                      
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-                          
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => handlePageChange(pageNum)}
-                              className={`px-3 py-2 text-sm font-medium rounded-lg ${
-                                currentPage === pageNum
-                                  ? "bg-blue-600 text-white"
-                                  : "text-slate-700 bg-white border border-slate-300 hover:bg-slate-50"
-                              }`}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
+                    <input
+                      type="checkbox"
+                      checked={hideDeleted}
+                      onChange={() => {setHideDeleted((prev) => !prev)}}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-600">
+                      Hide deleted
+                    </span>
                   </div>
-                )}
-              </>
-            )}
 
-            {/* Empty State */}
-            {!loading && filteredManongs.length === 0 && (
-              <div className="text-center py-12">
-                <Users size={48} className="mx-auto text-slate-300 mb-4" />
-                <h3 className="text-lg font-medium text-slate-600 mb-2">No manongs found</h3>
-                <p className="text-sm text-slate-500">
-                  {selectedTabIndex > 0 ? "No manongs with this status" : "Try adjusting your filters or check back later"}
-                </p>
-              </div>
-            )}
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                    className="select max-w-30"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <p className="mt-4 text-slate-600">Loading manongs...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Manongs List */}
+                  <div className="space-y-4">
+                    {filteredManongs.map((m) => (
+                      <ManongCard
+                        key={m.id}
+                        manong={m}
+                        isSelected={selectedItems.has(m.id)}
+                        onToggleSelect={toggleSelectItem}
+                        onDelete={handleDelete}
+                        onUpdate={handleUpdateManong}
+                        onViewDocument={handleViewDocument}
+                        isExpanded={expandedManongs.has(m.id)}
+                        toggleExpand={() => toggleExpand(m.id)}
+                        isDark={localStorage.getItem("theme") == 'dark' ? true : false}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && selectedTabIndex === 0 && (
+                    <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
+                      <div className="text-sm text-slate-600">
+                        Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalCount)} of {totalCount} results
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft size={16} />
+                          Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                                  currentPage === pageNum
+                                    ? "bg-blue-600 text-white"
+                                    : "text-slate-700 bg-white border border-slate-300 hover:bg-slate-50"
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Empty State */}
+              {!loading && filteredManongs.length === 0 && (
+                <div className="text-center py-12">
+                  <Users size={48} className="mx-auto text-slate-300 mb-4" />
+                  <h3 className="text-lg font-medium text-slate-600 mb-2">No manongs found</h3>
+                  <p className="text-sm text-slate-500">
+                    {selectedTabIndex > 0 ? "No manongs with this status" : "Try adjusting your filters or check back later"}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={modalTitle}
-      >
-        {modalContent}
-      </Modal>
-    </div>
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={modalTitle}
+        >
+          {modalContent}
+        </Modal>
+      </div>
+    </>
   );
 };
 

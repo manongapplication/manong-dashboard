@@ -6,3 +6,4 @@ export * from './sub-service-item';
 export * from './verification-status';
 export type * from './service-item-status';
 export * from './service-item';
+export * from './urgency-level';

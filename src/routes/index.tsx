@@ -1,6 +1,6 @@
 import Layout from "@/components/layout/Layout";
 import ProtectedRoute from "@/components/protected-route";
-import { Dashboard, Login, ServicesPage, Settings, UsersPage } from "@/pages";
+import { AppMaintenancePage, Dashboard, Login, ServicesPage, Settings, UsersPage } from "@/pages";
 import type { RouteObject } from "react-router-dom";
 
 const routes: RouteObject[] = [
@@ -16,6 +16,7 @@ const routes: RouteObject[] = [
       { path: "users", element: <UsersPage /> },
       { path: "settings", element: <Settings /> },
       { path: "services", element: <ServicesPage /> },
+      { path: "app-maintenance", element: <AppMaintenancePage /> },
     ],
   },
   { path: "/login", element: <Login /> }

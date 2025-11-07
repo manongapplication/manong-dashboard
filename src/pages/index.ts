@@ -3,3 +3,4 @@ export { default as UsersPage } from './UsersPage';
 export { default as Settings } from './Settings';
 export { default as Login } from './Login';
 export { default as ServicesPage } from './ServicesPage';
+export { default as AppMaintenancePage } from './AppMaintenancePage';

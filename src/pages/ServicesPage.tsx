@@ -14,6 +14,7 @@ import Modal from "@/components/ui/modal";
 import SubServiceItemCard from "@/components/ui/sub-service-item-card";
 import { Icon } from "@iconify/react";
 import { Helmet } from "react-helmet";
+import StatusAlertDialog from "@/components/ui/status-alert-dialog";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -38,6 +39,7 @@ const ServicesPage: React.FC = () => {
   const [nonEditingSubServiceSearchQuery, setNonEditingSubServiceSearchQuery] = useState('');
   const [modalCurrentPage, setModalCurrentPage] = useState(1);
   const [nonEditingCurrentPage, setNonEditingCurrentPage] = useState(1);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
 
   const fetchServices = async () => {
@@ -139,7 +141,7 @@ const ServicesPage: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("⚠️ Missing authorization token. Please log in again.");
+        setError("⚠️ Missing authorization token. Please log in again.");
         setLoading(false);
         return;
       }
@@ -164,7 +166,7 @@ const ServicesPage: React.FC = () => {
         setShowColorPicker(false);
         setIsEditing(false);
 
-        alert("✅ Services and sub-services have been reset to defaults!");
+        setSuccessMessage("✅ Services and sub-services have been reset to defaults!");
       } else {
         throw new Error(response.data.message || "Reset failed.");
       }
@@ -172,7 +174,6 @@ const ServicesPage: React.FC = () => {
     } catch (err: any) {
       console.error("Error resetting to defaults:", err);
       setError(err.message || "Unknown error occurred");
-      alert("❌ Failed to reset services. Check console for details.");
     } finally {
       setLoading(false);
     }
@@ -212,7 +213,7 @@ const ServicesPage: React.FC = () => {
 
       if (response.data.success) {
         fetchServices();
-        alert('Service Items saved!');
+        setSuccessMessage('Service Items saved!');
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -872,6 +873,26 @@ const ServicesPage: React.FC = () => {
         </Modal>
 
       </div>
+
+      {successMessage && (
+        <StatusAlertDialog
+          isOpen={true}
+          type="success"
+          title="Update Successful"
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
+
+      {error && (
+        <StatusAlertDialog
+          isOpen={true}
+          type="error"
+          title="Something went wrong"
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
     </>
   )
 }

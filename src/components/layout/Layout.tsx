@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Wrench, Moon, Sun } from "lucide-react";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Moon, Sun, WrenchIcon, ToolCase } from "lucide-react";
 
 const Layout: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,7 +12,8 @@ const Layout: React.FC = () => {
   const navItems = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
     { to: "/users", label: "Users", icon: Users },
-    { to: "/services", label: "Services", icon: Wrench },
+    { to: "/services", label: "Services", icon: ToolCase },
+    { to: "/app-maintenance", label: "App Maintenance", icon: WrenchIcon },
     { to: "/settings", label: "Settings", icon: Settings },
   ];
 
@@ -51,6 +52,10 @@ const Layout: React.FC = () => {
     setDropdownOpen(false);
     navigate("/login");
   };
+
+  const location = useLocation();
+
+  const pageTitle = navItems.find(item => item.to === location.pathname)?.label ?? "Dashboard";
 
   return (
     <div className="flex min-h-screen bg-base-100 text-base-content transition-colors duration-300">
@@ -115,7 +120,7 @@ const Layout: React.FC = () => {
             <Menu size={24} />
           </button>
 
-          <h2 className="text-lg font-semibold">Dashboard</h2>
+          <h2 className="text-lg font-semibold">{pageTitle}</h2>
 
           <div className="flex items-center gap-4" ref={dropdownRef}>
             {/* 🌙 Dark Mode Toggle */}

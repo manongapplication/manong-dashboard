@@ -208,7 +208,7 @@ const UrgencyLevelsPage: React.FC = () => {
                 type="button" 
                 className={clsx(
                   "btn btn-sm sm:btn-md",
-                  isEditing && "bg-yellow-600 hover:bg-yellow-700 text-white"
+                  isEditing && "bg-yellow-600! hover:bg-yellow-700!"
                 )}
                 onClick={handleEditingClick}
                 disabled={saving}

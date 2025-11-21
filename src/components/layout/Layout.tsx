@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Moon, Sun, WrenchIcon, ToolCase, Clock } from "lucide-react";
+import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Moon, Sun, WrenchIcon, ToolCase, Clock, NotebookPen, Notebook } from "lucide-react";
 
 const Layout: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -15,6 +15,8 @@ const Layout: React.FC = () => {
     { to: "/services", label: "Services", icon: ToolCase },
     { to: "/app-maintenance", label: "App Maintenance", icon: WrenchIcon },
     { to: "/urgency-levels", label: "Urgency Levels", icon: Clock },
+    { to: "/refund-requests", label: "Refund Requests", icon: NotebookPen },
+    { to: "/manong-reports", label: "Manong Reports", icon: Notebook },
     { to: "/settings", label: "Settings", icon: Settings },
   ];
 

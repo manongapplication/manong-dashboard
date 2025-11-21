@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { Ban, CheckCircle, Clock, Power, Users, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Ban, CheckCircle, Clock, Power, Users, ChevronLeft, ChevronRight, Trash2, Search } from "lucide-react";
 import axios from "axios";
 import StatsCard from "@/components/ui/stats-card";
 import type { Manong } from "@/types";
@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [hideDeleted, setHideDeleted] = useState(true);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [expandedManongs, setExpandedManongs] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleExpand = (id: number) => {
     setExpandedManongs(prev => {
@@ -132,6 +133,17 @@ const Dashboard = () => {
           filtered = filtered.filter(m => m.user.status === selectedTab.status);
         }
 
+        // Apply search filter if query exists
+        if (searchQuery.trim()) {
+          filtered = filtered.filter(manong => 
+            manong.user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            manong.user.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            manong.user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            manong.user.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            `${manong.user.firstName} ${manong.user.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+
         setFilteredManongs(filtered);
 
         setTotalPages(data.totalPages || 1);
@@ -175,6 +187,17 @@ const Dashboard = () => {
       filtered = filtered.filter(m => m.user.status === status);
     }
 
+    // Apply search filter if query exists
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(manong => 
+        manong.user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        manong.user.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        manong.user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        manong.user.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        `${manong.user.firstName} ${manong.user.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
     filtered = [...filtered].sort((a, b) => {
       const dateA = new Date(a.user.createdAt!).getTime();
       const dateB = new Date(b.user.createdAt!).getTime();
@@ -185,11 +208,49 @@ const Dashboard = () => {
     setFilteredManongs(filtered);
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+    
+    const selectedTab = tabs[selectedTabIndex];
+    let filtered = manongs;
+    
+    // Apply hideDeleted filter
+    if (hideDeleted) {
+      filtered = filtered.filter(m => m.user.deletedAt === null);
+    }
+    
+    // Apply status filter
+    if (selectedTab.status) {
+      filtered = filtered.filter(m => m.user.status === selectedTab.status);
+    }
+    
+    // Apply search filter
+    if (query.trim()) {
+      filtered = filtered.filter(manong => 
+        manong.user.firstName?.toLowerCase().includes(query.toLowerCase()) ||
+        manong.user.lastName?.toLowerCase().includes(query.toLowerCase()) ||
+        manong.user.email?.toLowerCase().includes(query.toLowerCase()) ||
+        manong.user.phone?.toLowerCase().includes(query.toLowerCase()) ||
+        `${manong.user.firstName} ${manong.user.lastName}`.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.user.createdAt!).getTime();
+      const dateB = new Date(b.user.createdAt!).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+    
+    setFilteredManongs(filtered);
+  };
+
   useEffect(() => {
     const selectedTab = tabs[selectedTabIndex];
     filterManongsByStatus(selectedTab.status);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortOrder]);
+  }, [sortOrder, searchQuery]);
 
   const handleUpdateManong = async (id: number, data: UpdateManongForm) => {
     try {
@@ -410,6 +471,20 @@ const Dashboard = () => {
 
           {/* Tabs and Table Container */}
           <div className={clsx(localStorage.getItem("theme") == 'dark' ? "border-slate-700" : "bg-white border-slate-200", "rounded-xl shadow-sm borde overflow-hidden")}>
+            {/* Search Bar */}
+            <div className="p-6 border-b border-slate-200">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search manongs by name, email, or phone..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
             {/* Tabs */}
             <div className="border-b border-slate-200 px-6">
               <div className="flex gap-8 overflow-x-auto">
@@ -512,8 +587,15 @@ const Dashboard = () => {
                     ))}
                   </div>
 
+                  {/* Search Results Info */}
+                  {searchQuery.trim() && (
+                    <div className="mt-4 text-sm text-slate-600">
+                      Found {filteredManongs.length} manong(s) matching "{searchQuery}"
+                    </div>
+                  )}
+
                   {/* Pagination */}
-                  {totalPages > 1 && selectedTabIndex === 0 && (
+                  {totalPages > 1 && selectedTabIndex === 0 && !searchQuery.trim() && (
                     <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
                       <div className="text-sm text-slate-600">
                         Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalCount)} of {totalCount} results
@@ -575,10 +657,20 @@ const Dashboard = () => {
               {!loading && filteredManongs.length === 0 && (
                 <div className="text-center py-12">
                   <Users size={48} className="mx-auto text-slate-300 mb-4" />
-                  <h3 className="text-lg font-medium text-slate-600 mb-2">No manongs found</h3>
+                  <h3 className="text-lg font-medium text-slate-600 mb-2">
+                    {searchQuery.trim() ? "No manongs found matching your search" : "No manongs found"}
+                  </h3>
                   <p className="text-sm text-slate-500">
                     {selectedTabIndex > 0 ? "No manongs with this status" : "Try adjusting your filters or check back later"}
                   </p>
+                  {searchQuery.trim() && (
+                    <button
+                      onClick={() => handleSearch('')}
+                      className="mt-4 px-4 py-2 text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      Clear search
+                    </button>
+                  )}
                 </div>
               )}
             </div>

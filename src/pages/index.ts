@@ -4,3 +4,5 @@ export { default as Settings } from './Settings';
 export { default as Login } from './Login';
 export { default as ServicesPage } from './ServicesPage';
 export { default as AppMaintenancePage } from './AppMaintenancePage';
+export { default as RefundRequestsPage } from './RefundRequestsPage';
+export { default as ManongReportsPage } from './ManongReportsPage';

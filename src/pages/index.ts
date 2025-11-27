@@ -6,3 +6,4 @@ export { default as ServicesPage } from './ServicesPage';
 export { default as AppMaintenancePage } from './AppMaintenancePage';
 export { default as RefundRequestsPage } from './RefundRequestsPage';
 export { default as ManongReportsPage } from './ManongReportsPage';
+export { default as ReferralCodesPage } from './ReferralCodesPage';

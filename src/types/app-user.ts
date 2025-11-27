@@ -10,6 +10,7 @@ export interface AppUser {
   profilePhoto?: string | null;
   addressLine?: string;
   status: string;
+  role: string;
 
   createdAt?: Date;
   updatedAt?: Date;

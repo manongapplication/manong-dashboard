@@ -17,6 +17,7 @@ const Layout: React.FC = () => {
     { to: "/urgency-levels", label: "Urgency Levels", icon: Clock },
     { to: "/refund-requests", label: "Refund Requests", icon: NotebookPen },
     { to: "/manong-reports", label: "Manong Reports", icon: Notebook },
+    { to: "/referral-codes", label: "Referral Codes", icon: Users },
     { to: "/settings", label: "Settings", icon: Settings },
   ];
 

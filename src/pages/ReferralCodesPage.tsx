@@ -27,8 +27,7 @@ const ReferralCodesPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCodeId, setEditingCodeId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [deleting, setDeleting] = useState(false);
+  // const [deleting, setDeleting] = useState(false);
 
   // Delete confirmation
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -331,14 +330,14 @@ const ReferralCodesPage: React.FC = () => {
   const handleDeleteCode = async () => {
     if (!codeToDelete) return;
 
-    setDeleting(true);
+    // setDeleting(true);
     setError(null);
 
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         setError("No authentication token found. Please log in.");
-        setDeleting(false);
+        // setDeleting(false);
         return;
       }
 
@@ -368,7 +367,7 @@ const ReferralCodesPage: React.FC = () => {
       setError(errorMessage);
       console.error('Error deleting Referral code:', e);
     } finally {
-      setDeleting(false);
+      // setDeleting(false);
     }
   };
 
@@ -397,8 +396,7 @@ const ReferralCodesPage: React.FC = () => {
   };
 
   const [allUsers, setAllUsers] = useState<AppUser[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [usersLoaded, setUsersLoaded] = useState(false);
+  // const [usersLoaded, setUsersLoaded] = useState(false);
 
   // Function to fetch all users
   const fetchAllUsers = async () => {
@@ -417,7 +415,7 @@ const ReferralCodesPage: React.FC = () => {
 
       if (response.data.success) {
         setAllUsers(response.data.data || []);
-        setUsersLoaded(true);
+        // setUsersLoaded(true);
       }
     } catch (error) {
       console.error('Error fetching all users:', error);
@@ -453,6 +451,7 @@ const ReferralCodesPage: React.FC = () => {
   useEffect(() => {
     fetchReferralCodes();
     fetchAllUsers(); // Fetch users when component loads
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openDeleteDialog = (code: ReferralCode) => {

@@ -30,26 +30,53 @@ const RefundRequestCard: React.FC<RefundRequestCardProps> = ({
 
   // Calculate if refund can be processed (1-2 business days after creation)
   const canProcessRefund = () => {
+    // If already processed, return true
+    if (refundRequest.status === 'processed' || refundRequest.status === 'approved') {
+      return true;
+    }
+
     const createdAt = new Date(refundRequest.createdAt);
     const now = new Date();
     const timeDiff = now.getTime() - createdAt.getTime();
-    const hoursDiff = timeDiff / (1000 * 60 * 60);
+    const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
     
-    // Allow processing after 24 hours (1 business day)
-    return hoursDiff >= 24;
+    // Check payment method - if Paymongo (card/gcash/paymaya), need 7 days
+    const paymentMethod = refundRequest.serviceRequest?.paymentTransactions?.[0]?.provider;
+    const isPaymongoPayment = paymentMethod && 
+      ['card', 'gcash', 'paymaya', 'billease', 'dob', 'grab_pay'].includes(paymentMethod.toLowerCase());
+    
+    // If Paymongo payment: need 7 days
+    // If Cash or unknown: need 24 hours (1 day)
+    const requiredDays = isPaymongoPayment ? 7 : 1;
+    
+    return daysDiff >= requiredDays;
   };
 
   const getTimeRemaining = () => {
+    if (refundRequest.status === 'processed' || refundRequest.status === 'approved') {
+      return "Completed";
+    }
+
     const createdAt = new Date(refundRequest.createdAt);
     const now = new Date();
     const timeDiff = now.getTime() - createdAt.getTime();
-    const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-    if (hoursDiff >= 24) {
+    const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+    
+    // Check payment method
+    const paymentMethod = refundRequest.serviceRequest?.paymentTransactions?.[0]?.provider;
+    const isPaymongoPayment = paymentMethod && 
+      ['card', 'gcash', 'paymaya'].includes(paymentMethod.toLowerCase());
+    
+    const requiredDays = isPaymongoPayment ? 7 : 1;
+    const daysRemaining = requiredDays - daysDiff;
+    
+    if (daysRemaining <= 0) {
       return "Ready to process";
+    } else if (daysRemaining > 1) {
+      return `${Math.ceil(daysRemaining)} days remaining`;
     } else {
-      const hoursRemaining = 24 - hoursDiff;
-      return `${Math.ceil(hoursRemaining)}h remaining`;
+      const hoursRemaining = Math.ceil(24 - (daysDiff * 24));
+      return `${hoursRemaining}h remaining`;
     }
   };
 

@@ -1,4 +1,5 @@
 import type { AppUser } from "./app-user";
+import type { PaymentTransaction } from "./payment-transaction";
 import type { RefundStatus } from "./refund-status";
 import type { ServiceRequest } from "./service-request";
 
@@ -15,6 +16,8 @@ export interface RefundRequest {
   remarks?: string | null;
 
   serviceRequest?: ServiceRequest;
+
+  paymentTransaction?: PaymentTransaction;
 
   createdAt: Date;
   updatedAt: Date;

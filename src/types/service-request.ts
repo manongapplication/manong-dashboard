@@ -1,5 +1,6 @@
 import type { AppUser } from "./app-user";
 import type { PaymentStatus } from "./payment-status";
+import type { PaymentTransaction } from "./payment-transaction";
 import { ServiceRequestStatus } from "./service-request-status";
 
 export interface ServiceRequest {
@@ -18,11 +19,14 @@ export interface ServiceRequest {
   customerFullAddress?: string;
   customerLat: number;
   customerLng: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 
   notes?: string;
   status?: ServiceRequestStatus
   total?: number;
   paymentStatus: PaymentStatus;
+  paymentTransactions?: PaymentTransaction[];
 
   manong?: AppUser;
   user?: AppUser;

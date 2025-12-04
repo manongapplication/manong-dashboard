@@ -14,3 +14,4 @@ export * from './manong-report';
 export * from './referral-code';
 export * from './transaction-type';
 export * from './payment-transaction';
+export * from './payment-method';

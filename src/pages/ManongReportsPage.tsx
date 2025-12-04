@@ -6,6 +6,7 @@ import type { ManongReport } from "@/types/manong-report";
 import StatusAlertDialog from "@/components/ui/status-alert-dialog";
 import clsx from "clsx";
 import ManongReportCard from "@/components/ui/manong-report-card";
+import { useSearchParams } from "react-router-dom";
 
 const ManongReportsPage: React.FC = () => {
   const baseApiUrl = import.meta.env.VITE_API_URL;
@@ -21,6 +22,14 @@ const ManongReportsPage: React.FC = () => {
   const [filter, setFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
 
   const fetchManongReports = async () => {
     setLoading(true);
@@ -139,6 +148,14 @@ const ManongReportsPage: React.FC = () => {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    // Update URL parameter
+    if (query.trim()) {
+      searchParams.set('search', query);
+      setSearchParams(searchParams);
+    } else {
+      searchParams.delete('search');
+      setSearchParams(searchParams);
+    }
     filterAndSortReports(reports, filter, query, sortOrder);
   };
 
@@ -155,6 +172,13 @@ const ManongReportsPage: React.FC = () => {
   useEffect(() => {
     fetchManongReports();
   }, []);
+
+  // Add effect to filter reports when searchQuery changes
+  useEffect(() => {
+    if (reports.length > 0) {
+      filterAndSortReports(reports, filter, searchQuery, sortOrder);
+    }
+  }, [searchQuery, filter, sortOrder, reports]);
 
   const handleEditingClick = () => {
     if (isEditing && hasChanges) {

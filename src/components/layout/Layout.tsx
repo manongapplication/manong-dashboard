@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Moon, Sun, WrenchIcon, ToolCase, Clock, NotebookPen, Notebook } from "lucide-react";
+import { Menu, X, LayoutDashboard, Users, Settings, LogOut, Moon, Sun, WrenchIcon, ToolCase, Clock, NotebookPen, Notebook, Briefcase } from "lucide-react";
 
 const Layout: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,6 +13,7 @@ const Layout: React.FC = () => {
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
     { to: "/users", label: "Users", icon: Users },
     { to: "/services", label: "Services", icon: ToolCase },
+    { to: "/service-requests", label: "Service Requests", icon: Briefcase },
     { to: "/app-maintenance", label: "App Maintenance", icon: WrenchIcon },
     { to: "/urgency-levels", label: "Urgency Levels", icon: Clock },
     { to: "/refund-requests", label: "Refund Requests", icon: NotebookPen },
@@ -21,7 +22,6 @@ const Layout: React.FC = () => {
     { to: "/settings", label: "Settings", icon: Settings },
   ];
 
-  // 🔹 Handle clicks outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -32,16 +32,17 @@ const Layout: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-    const theme = localStorage.getItem("theme");
+  const theme = localStorage.getItem("theme");
   
-    useEffect(() => {
-      document.querySelector("html")?.setAttribute("data-theme", theme ?? 'light');
-      setDarkMode(theme == 'dark' ? true : false);
-    }, [theme]);
+  useEffect(() => {
+    document.querySelector("html")?.setAttribute("data-theme", theme ?? 'light');
+    setDarkMode(theme == 'dark' ? true : false);
+  }, [theme]);
 
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
+    
     if (newMode) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
@@ -49,6 +50,11 @@ const Layout: React.FC = () => {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
     }
+    
+    // Refresh the page after a short delay to apply theme changes
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const handleLogout = () => {
@@ -131,6 +137,7 @@ const Layout: React.FC = () => {
             <button
               onClick={toggleDarkMode}
               className="btn btn-ghost btn-sm flex items-center gap-2"
+              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
               <span className="hidden md:inline text-sm">{darkMode ? "Light" : "Dark"}</span>

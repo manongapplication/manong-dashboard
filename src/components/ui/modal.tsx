@@ -7,14 +7,15 @@ interface ModalProps {
   title?: string;
   children?: ReactNode;
   footer?: ReactNode;
+  className?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer, className }) => {
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50"
+      className={clsx("fixed inset-0 z-40 flex items-center justify-center bg-black/50", className)}
       onClick={onClose} // Click on backdrop closes modal
     >
       {/* Modal container */}

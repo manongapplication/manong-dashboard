@@ -32,8 +32,7 @@ const Dashboard = () => {
   const [modalTitle, setModalTitle] = useState<string>('My Modal');
   const [modalContent, setModalContent] = useState<ReactNode>(<></>);
   const [hideDeleted, setHideDeleted] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [sortOrder] = useState<'newest' | 'oldest'>('newest');
   const [expandedManongs, setExpandedManongs] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -77,8 +76,7 @@ const Dashboard = () => {
     { label: "Deleted", count: stats.deleted, status: "deleted" },
   ];
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const fetchManongs = async (page = 1, serviceItemId?: number) => {
+  const fetchManongs = async (page = 1) => {
     setLoading(true);
     setError(null);
     

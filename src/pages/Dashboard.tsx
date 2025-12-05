@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode, useCallback } from "react";
 import { Ban, CheckCircle, Clock, Power, Users, ChevronLeft, ChevronRight, Trash2, Search, CheckSquare, Star } from "lucide-react";
 import axios from "axios";
 import StatsCard from "@/components/ui/stats-card";
@@ -25,14 +25,13 @@ const Dashboard = () => {
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const [manongs, setManongs] = useState<Manong[]>([]);
   const [filteredManongs, setFilteredManongs] = useState<Manong[]>([]);
-  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false); 
   const [modalTitle, setModalTitle] = useState<string>('My Modal');
   const [modalContent, setModalContent] = useState<ReactNode>(<></>);
   const [hideDeleted, setHideDeleted] = useState(true);
-  const [sortOrder] = useState<'newest' | 'oldest'>('newest');
   const [expandedManongs, setExpandedManongs] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -76,6 +75,28 @@ const Dashboard = () => {
     { label: "Deleted", count: stats.deleted, status: "deleted" },
   ];
 
+  // Memoized sort function
+  const sortManongs = useCallback((manongsToSort: Manong[]) => {
+    return [...manongsToSort].sort((a, b) => {
+      if (sortBy === 'completed') {
+        const aJobs = a.stats?.completedServices || 0;
+        const bJobs = b.stats?.completedServices || 0;
+        return bJobs - aJobs; // Descending: most jobs first
+      }
+      
+      if (sortBy === 'rating') {
+        const aRating = a.stats?.ratingCount ? a.stats.averageRating : 0;
+        const bRating = b.stats?.ratingCount ? b.stats.averageRating : 0;
+        return bRating - aRating; // Descending: highest rating first
+      }
+      
+      const dateA = new Date(a.user.createdAt!).getTime();
+      const dateB = new Date(b.user.createdAt!).getTime();
+      
+      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [sortBy]);
+
   const fetchManongs = async (page = 1) => {
     setLoading(true);
     setError(null);
@@ -93,7 +114,7 @@ const Dashboard = () => {
       
       const response = await axios.post(
         url,
-        {}, // Empty body since search is now in query params
+        {},
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -103,7 +124,6 @@ const Dashboard = () => {
         }
       );
 
-      // Now response.data should have success: true and data: [...]
       if (response.data.success) {
         const data = response.data.data;
 
@@ -134,27 +154,11 @@ const Dashboard = () => {
         // Calculate overall stats
         calculateOverallStats(normalizedManongs);
         
-        // Sort with new options
-        const sorted = sortManongs(normalizedManongs);
-
-        setManongs(sorted);
+        // Store the raw data
+        setManongs(normalizedManongs);
         
-        // Apply filters
-        const selectedTab = tabs[selectedTabIndex];
-        let filtered = sorted;
-
-        // Hide deleted if needed
-        if (hideDeleted) {
-          filtered = filtered.filter(m => m.user.deletedAt === null);
-        }
-
-        // Filter by selected tab
-        if (selectedTab.status) {
-          filtered = filtered.filter(m => m.user.status === selectedTab.status);
-        }
-
-        // No need to apply search filter - backend already did it
-        setFilteredManongs(filtered);
+        // Apply filters and sorting
+        applyFiltersAndSort(normalizedManongs);
 
         setTotalPages(response.data.totalPages || 1);
         setTotalCount(response.data.totalCount || normalizedManongs.length || 0);
@@ -168,41 +172,24 @@ const Dashboard = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Error fetching manongs:', err);
-      console.error('Error details:', {
-        status: err.response?.status,
-        data: err.response?.data,
-        url: err.config?.url
-      });
       setError(err.response?.data?.message || 'Failed to fetch manongs');
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateStats = (data: Manong[]) => {
-    const activeUsers = hideDeleted ? data.filter(m => m.user.deletedAt === null) : data;
-
-    setStats({
-      total: hideDeleted ? activeUsers.length : data.length,
-      available: data.filter(m => m.manongProfile.status === "available" && m.user.deletedAt === null).length,
-      busy: data.filter(m => m.manongProfile.status === "busy" && m.user.deletedAt === null).length,
-      offline: data.filter(m => m.manongProfile.status === "offline" && m.user.deletedAt === null).length,
-      suspended: data.filter(m => m.manongProfile.status === "suspended").length,
-      deleted: data.filter(m => m.user.deletedAt !== null).length,
-    });
-  };
-
-  const filterManongsByStatus = (status: string | null) => {
-    let filtered = manongs;
+  const applyFiltersAndSort = (manongsToFilter: Manong[] = manongs) => {
+    const selectedTab = tabs[selectedTabIndex];
+    let filtered = [...manongsToFilter];
     
-    // First filter by hideDeleted
+    // Hide deleted if needed
     if (hideDeleted) {
       filtered = filtered.filter(m => m.user.deletedAt === null);
     }
-    
-    // Then filter by status
-    if (status) {
-      filtered = filtered.filter(m => m.user.status === status);
+
+    // Filter by selected tab
+    if (selectedTab.status) {
+      filtered = filtered.filter(m => m.user.status === selectedTab.status);
     }
 
     // Apply search filter if query exists
@@ -216,10 +203,23 @@ const Dashboard = () => {
       );
     }
 
-    // Apply new sorting
-    filtered = sortManongs(filtered);
+    // Apply sorting
+    const sorted = sortManongs(filtered);
     
-    setFilteredManongs(filtered);
+    setFilteredManongs(sorted);
+  };
+
+  const calculateStats = (data: Manong[]) => {
+    const activeUsers = hideDeleted ? data.filter(m => m.user.deletedAt === null) : data;
+
+    setStats({
+      total: hideDeleted ? activeUsers.length : data.length,
+      available: data.filter(m => m.manongProfile.status === "available" && m.user.deletedAt === null).length,
+      busy: data.filter(m => m.manongProfile.status === "busy" && m.user.deletedAt === null).length,
+      offline: data.filter(m => m.manongProfile.status === "offline" && m.user.deletedAt === null).length,
+      suspended: data.filter(m => m.manongProfile.status === "suspended").length,
+      deleted: data.filter(m => m.user.deletedAt !== null).length,
+    });
   };
 
   const calculateOverallStats = (data: Manong[]) => {
@@ -247,70 +247,11 @@ const Dashboard = () => {
     });
   };
 
-  const sortManongs = (manongs: Manong[]) => {
-    return [...manongs].sort((a, b) => {
-      if (sortBy === 'completed') {
-        const aJobs = a.stats?.completedServices || 0;
-        const bJobs = b.stats?.completedServices || 0;
-        return bJobs - aJobs;
-      }
-      
-      if (sortBy === 'rating') {
-        const aRating = a.stats?.ratingCount ? a.stats.averageRating : 0;
-        const bRating = b.stats?.ratingCount ? b.stats.averageRating : 0;
-        return bRating - aRating;
-      }
-      
-      const dateA = new Date(a.user.createdAt!).getTime();
-      const dateB = new Date(b.user.createdAt!).getTime();
-      
-      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-  };
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1);
-    
-    const selectedTab = tabs[selectedTabIndex];
-    let filtered = manongs;
-    
-    // Apply hideDeleted filter
-    if (hideDeleted) {
-      filtered = filtered.filter(m => m.user.deletedAt === null);
-    }
-    
-    // Apply status filter
-    if (selectedTab.status) {
-      filtered = filtered.filter(m => m.user.status === selectedTab.status);
-    }
-    
-    // Apply search filter
-    if (query.trim()) {
-      filtered = filtered.filter(manong => 
-        manong.user.firstName?.toLowerCase().includes(query.toLowerCase()) ||
-        manong.user.lastName?.toLowerCase().includes(query.toLowerCase()) ||
-        manong.user.email?.toLowerCase().includes(query.toLowerCase()) ||
-        manong.user.phone?.toLowerCase().includes(query.toLowerCase()) ||
-        `${manong.user.firstName} ${manong.user.lastName}`.toLowerCase().includes(query.toLowerCase())
-      );
-    }
-
-    // Apply sorting
-    filtered = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.user.createdAt!).getTime();
-      const dateB = new Date(b.user.createdAt!).getTime();
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-    
-    setFilteredManongs(filtered);
+    applyFiltersAndSort();
   };
-
-  useEffect(() => {
-    const selectedTab = tabs[selectedTabIndex];
-    filterManongsByStatus(selectedTab.status);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortOrder, searchQuery]);
 
   const handleUpdateManong = async (id: number, data: UpdateManongForm) => {
     try {
@@ -328,7 +269,6 @@ const Dashboard = () => {
         }
       );
 
-      // Refresh the data
       await fetchManongs(currentPage);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -395,7 +335,6 @@ const Dashboard = () => {
       );
 
       if (response.data.success) {
-        // Refresh the manongs data
         await fetchManongs(currentPage);
         return response.data;
       }
@@ -412,6 +351,13 @@ const Dashboard = () => {
     fetchAvailableSubServiceItems();
   }, []);
 
+  // Apply filters and sort when dependencies change
+  useEffect(() => {
+    if (manongs.length > 0) {
+      applyFiltersAndSort();
+    }
+  }, [sortBy, selectedTabIndex, hideDeleted, searchQuery]);
+
   const handleTabChange = (index: number) => {
     setSelectedTabIndex(index);
     setCurrentPage(1);
@@ -424,14 +370,12 @@ const Dashboard = () => {
     } else {
       setHideDeleted(true);
     }
-
-    filterManongsByStatus(selectedTab.status);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       fetchManongs(newPage);
-      setSelectedTabIndex(0); // Reset to "All Manongs" when changing pages
+      setSelectedTabIndex(0);
     }
   };
 
@@ -514,7 +458,6 @@ const Dashboard = () => {
       );
 
       if (response.data.success) {
-        // Filter out deleted items from UI
         setManongs((prev) => prev.filter((m) => !selectedItems.has(m.id)));
         setFilteredManongs((prev) => prev.filter((m) => !selectedItems.has(m.id)));
         setSelectedItems(new Set());
@@ -528,16 +471,6 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (hideDeleted) {
-      setFilteredManongs(manongs.filter(m => m.user.deletedAt === null));
-    } else {
-      const selectedTab = tabs[selectedTabIndex];
-      filterManongsByStatus(selectedTab.status);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hideDeleted, manongs]);
-
   const [isSpecialitiesModalOpen, setIsSpecialitiesModalOpen] = useState(false);
   const [selectedManongForSpecialities, setSelectedManongForSpecialities] = useState<number | null>(null);
   const [manongSpecialities, setManongSpecialities] = useState<number[]>([]);
@@ -548,7 +481,6 @@ const Dashboard = () => {
     setIsSpecialitiesModalOpen(true);
   };
 
-  // Add this function
   const handleSaveSpecialities = async (selectedIds: number[]) => {
     if (!selectedManongForSpecialities) return;
     
@@ -620,7 +552,6 @@ const Dashboard = () => {
               color="text-violet-600"
               bgColor="bg-violet-100"
             />
-            {/* Add these new stats cards */}
             <StatsCard
               title="Total Completed"
               value={overallStats.totalCompletedServices}
@@ -639,16 +570,13 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               <p className="text-sm">{error}</p>
             </div>
           )}
 
-          {/* Tabs and Table Container */}
           <div className={clsx(localStorage.getItem("theme") == 'dark' ? "border-slate-700" : "bg-white border-slate-200", "rounded-xl shadow-sm borde overflow-hidden")}>
-            {/* Search Bar */}
             <div className="p-6 border-b border-slate-200">
               <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
@@ -662,7 +590,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Tabs */}
             <div className="border-b border-slate-200 px-6">
               <div className="flex gap-8 overflow-x-auto">
                 {tabs.map((tab, index) => (
@@ -700,9 +627,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Table - Card Layout */}
             <div className="p-6">
-              {/* Select All */}
               {filteredManongs.length > 0 && (
                 <div className="mb-4 flex justify-between items-center gap-2 pb-3 border-b border-slate-200">
                   <div className="flex flex-row items-center gap-2">
@@ -731,8 +656,6 @@ const Dashboard = () => {
                     value={sortBy}
                     onChange={(e) => {
                       setSortBy(e.target.value as 'newest' | 'oldest' | 'completed' | 'rating');
-                      const selectedTab = tabs[selectedTabIndex];
-                      filterManongsByStatus(selectedTab.status);
                     }}
                     className="select max-w-30"
                   >
@@ -744,7 +667,6 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {/* Loading State */}
               {loading ? (
                 <div className="text-center py-12">
                   <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -752,7 +674,6 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <>
-                  {/* Manongs List */}
                   <div className="space-y-4">
                     {filteredManongs.map((m) => (
                       <ManongCard
@@ -776,14 +697,12 @@ const Dashboard = () => {
                     ))}
                   </div>
 
-                  {/* Search Results Info */}
                   {searchQuery.trim() && (
                     <div className="mt-4 text-sm text-slate-600">
                       Found {filteredManongs.length} manong(s) matching "{searchQuery}"
                     </div>
                   )}
 
-                  {/* Pagination */}
                   {totalPages > 1 && selectedTabIndex === 0 && !searchQuery.trim() && (
                     <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
                       <div className="text-sm text-slate-600">
@@ -842,7 +761,6 @@ const Dashboard = () => {
                 </>
               )}
 
-              {/* Empty State */}
               {!loading && filteredManongs.length === 0 && (
                 <div className="text-center py-12">
                   <Users size={48} className="mx-auto text-slate-300 mb-4" />

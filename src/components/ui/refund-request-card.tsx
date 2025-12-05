@@ -210,7 +210,7 @@ const RefundRequestCard: React.FC<RefundRequestCardProps> = ({
               {...register('status', { 
                 required: 'Status is required!'
               })}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              className="select w-full px-3 py-2 rounded-md text-sm"
             >
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>

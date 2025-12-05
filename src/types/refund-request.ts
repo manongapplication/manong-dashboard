@@ -21,6 +21,7 @@ export interface RefundRequest {
 
   createdAt: Date;
   updatedAt: Date;
+  availableAt?: Date;
 
   user?: AppUser;
 }

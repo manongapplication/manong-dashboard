@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { MoreVertical, Eye, Edit, Trash2, CheckCircle, Ban, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MoreVertical, Eye, Edit, Trash2, CheckCircle, Ban, User, X, Settings } from "lucide-react";
 import { useForm } from "react-hook-form";
 import clsx from "clsx";
 import type { Manong, ManongProfile, AppUser } from "@/types";
@@ -12,6 +12,7 @@ interface UpdateManongForm {
   status: string;
   yearsExperience: number;
   experienceDescription: string;
+  subServiceItemIds: number[];
 }
 
 interface ManongCardProps {
@@ -20,10 +21,20 @@ interface ManongCardProps {
   onToggleSelect: (id: number) => void;
   onDelete: (id: number) => void;
   onUpdate: (id: number, data: UpdateManongForm) => Promise<void>;
+  onUpdateSpecialities: (id: number, subServiceItemIds: number[]) => Promise<void>;
+  onEditSpecialities?: (manongId: number, currentSpecialities: number[]) => void; // Add this optional prop
   onViewDocument: (documentType: string, documentUrl: string) => void;
   isExpanded: boolean;
   toggleExpand: () => void;
   isDark?: boolean;
+  availableSubServiceItems?: Array<{
+    id: number;
+    title: string;
+    serviceItem: {
+      id: number;
+      title: string;
+    };
+  }>;
 }
 
 const ManongCard = ({
@@ -32,12 +43,18 @@ const ManongCard = ({
   onToggleSelect,
   onDelete,
   onUpdate,
+  onUpdateSpecialities,
+  onEditSpecialities, // Add this
   onViewDocument,
   isExpanded,
   toggleExpand,
   isDark,
+  availableSubServiceItems = [],
 }: ManongCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingSpecialities, setIsEditingSpecialities] = useState(false);
+  const [selectedSpecialities, setSelectedSpecialities] = useState<number[]>([]);
+  const [specialitiesLoading, setSpecialitiesLoading] = useState(false);
 
   const {
     register,
@@ -45,6 +62,16 @@ const ManongCard = ({
     reset,
     formState: { errors },
   } = useForm<UpdateManongForm>();
+
+  // Initialize selected specialities when manong data loads
+  useEffect(() => {
+    if (manong.manongProfile?.manongSpecialities) {
+      const currentSpecialities = manong.manongProfile.manongSpecialities
+        .map(s => s.subServiceItemId)
+        .filter(id => id !== undefined) as number[];
+      setSelectedSpecialities(currentSpecialities);
+    }
+  }, [manong]);
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -56,12 +83,57 @@ const ManongCard = ({
       status: manong.user.status || 'pending',
       yearsExperience: manong.manongProfile.yearsExperience || 0,
       experienceDescription: manong.manongProfile.experienceDescription || '',
+      subServiceItemIds: selectedSpecialities,
     });
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     reset();
+  };
+
+  const handleEditSpecialitiesClick = () => {
+    // If onEditSpecialities prop is provided, use it (for modal approach)
+    if (onEditSpecialities) {
+      const currentSpecialities = manong.manongProfile.manongSpecialities
+        ?.map(s => s.subServiceItemId)
+        .filter(id => id !== undefined) as number[] || [];
+      onEditSpecialities(manong.id, currentSpecialities);
+    } else {
+      // Otherwise use inline editing
+      setIsEditingSpecialities(true);
+    }
+  };
+
+  const handleCancelSpecialitiesEdit = () => {
+    setIsEditingSpecialities(false);
+    // Reset to original specialities
+    const currentSpecialities = manong.manongProfile.manongSpecialities
+      ?.map(s => s.subServiceItemId)
+      .filter(id => id !== undefined) as number[] || [];
+    setSelectedSpecialities(currentSpecialities);
+  };
+
+  const handleSaveSpecialities = async () => {
+    try {
+      setSpecialitiesLoading(true);
+      await onUpdateSpecialities(manong.id, selectedSpecialities);
+      setIsEditingSpecialities(false);
+    } catch (error) {
+      console.error('Failed to update specialities:', error);
+    } finally {
+      setSpecialitiesLoading(false);
+    }
+  };
+
+  const toggleSpeciality = (id: number) => {
+    setSelectedSpecialities(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(itemId => itemId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
   };
 
   const onSubmit = async (data: UpdateManongForm) => {
@@ -105,7 +177,7 @@ const ManongCard = ({
 
     if (list.length === 0) return "No specialities";
 
-    const titles = list.map(s => s.subServiceItem.title);
+    const titles = list.map(s => s.subServiceItem?.title || "Unknown");
 
     if (isExpanded) {
       return (
@@ -140,6 +212,16 @@ const ManongCard = ({
 
     return visible.join(", ");
   };
+
+  // Group specialities by service item for better display
+  const groupedSpecialities = availableSubServiceItems.reduce((acc, item) => {
+    const serviceTitle = item.serviceItem.title;
+    if (!acc[serviceTitle]) {
+      acc[serviceTitle] = [];
+    }
+    acc[serviceTitle].push(item);
+    return acc;
+  }, {} as Record<string, typeof availableSubServiceItems>);
 
   return (
     <form
@@ -225,12 +307,84 @@ const ManongCard = ({
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
           <span className="text-slate-500">Specialities</span>
-          <div className="p-4 rounded-lg shadow">
-            <p className="text-sm text-start">
-              {getSpecialities(manong.manongProfile)}
-            </p>
+          <div className="p-2 rounded-lg">
+            {isEditingSpecialities ? (
+              <div className="space-y-2 max-w-xs">
+                <div className="flex flex-wrap gap-2">
+                  {selectedSpecialities.map(id => {
+                    const item = availableSubServiceItems.find(s => s.id === id);
+                    return item ? (
+                      <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        {item.title}
+                        <button
+                          type="button"
+                          onClick={() => toggleSpeciality(id)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+                
+                {/* Specialities selection modal (simplified inline version) */}
+                <div className="border rounded-lg p-3 max-h-60 overflow-y-auto">
+                  {Object.entries(groupedSpecialities).map(([serviceTitle, items]) => (
+                    <div key={serviceTitle} className="mb-3">
+                      <h4 className="font-medium text-sm mb-2">{serviceTitle}</h4>
+                      <div className="space-y-1">
+                        {items.map(item => (
+                          <label key={item.id} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedSpecialities.includes(item.id)}
+                              onChange={() => toggleSpeciality(item.id)}
+                              className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm">{item.title}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveSpecialities}
+                    disabled={specialitiesLoading}
+                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {specialitiesLoading ? "Saving..." : "Save Specialities"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelSpecialitiesEdit}
+                    className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-right">
+                <p className="text-sm text-start mb-1">
+                  {getSpecialities(manong.manongProfile)}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleEditSpecialitiesClick}
+                  className="text-xs text-blue-600 hover:underline mt-1"
+                >
+                  Edit Specialities
+                </button>
+              </div>
+            )}
           </div>
         </div>
+        
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
           <span className="text-slate-500">Experience</span>
           {isEditing ? (
@@ -252,14 +406,32 @@ const ManongCard = ({
             <span className="font-medium">{manong.manongProfile.yearsExperience || 0} years</span>
           )}
         </div>
+        
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
           <span className="text-slate-500">Assistants</span>
           <span className="font-medium">{manong.manongProfile.manongAssistants?.length || 0}</span>
         </div>
+        
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
           <span className="text-slate-500">Verified</span>
           <span className="font-medium text-right">{manong.manongProfile.isProfessionallyVerified ? "Yes" : "No"}</span>
         </div>
+        
+        <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
+          <span className="text-slate-500">Completed Jobs</span>
+          <span className="font-medium">{manong.stats?.completedServices || 0}</span>
+        </div>
+        
+        <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
+          <span className="text-slate-500">Average Rating</span>
+          <span className="font-medium">
+            {manong.stats?.ratingCount 
+              ? `${manong.stats.averageRating.toFixed(1)} ★ (${manong.stats.ratingCount})`
+              : 'No ratings'
+            }
+          </span>
+        </div>
+        
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b md:col-span-2")}>
           <span className="text-slate-500">Address</span>
           {isEditing ? (
@@ -275,6 +447,7 @@ const ManongCard = ({
             <span className="font-medium text-right">{manong.user?.addressLine || "N/A"}</span>
           )}
         </div>
+        
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b md:col-span-2")}>
           <span className="text-slate-500">Description</span>
           {isEditing ? (
@@ -290,6 +463,7 @@ const ManongCard = ({
             <span className="font-medium text-right">{manong.manongProfile.experienceDescription || "N/A"}</span>
           )}
         </div>
+        
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b md:col-span-2")}>
           <span className="text-slate-500">Status</span>
           {isEditing ? (
@@ -312,6 +486,7 @@ const ManongCard = ({
             <span className="font-medium text-right">{manong.user?.status || "N/A"}</span>
           )}
         </div>
+        
         {manong.providerVerifications?.map((p, index) => (
           <div key={p.id} className={clsx(index == ((manong.providerVerifications?.length ?? 0)-1) ? "" : isDark ? "border-b border-slate-600" : "border-b border-slate-100", "flex justify-between py-2 md:col-span-2")}>
             <span className="text-slate-500">{p.documentType}</span>
@@ -362,6 +537,18 @@ const ManongCard = ({
               <Edit size={16} />
               Edit
             </button>
+            
+            {/* Specialities Edit Button (Separate from main Edit) */}
+            <button 
+              type="button"
+              onClick={handleEditSpecialitiesClick}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+              title="Edit Specialities"
+            >
+              <Settings size={16} />
+              Edit Specialities
+            </button>
+            
             <button 
               type="button" 
               onClick={() => onDelete(manong.id)} 

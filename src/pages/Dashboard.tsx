@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { Ban, CheckCircle, Clock, Power, Users, ChevronLeft, ChevronRight, Trash2, Search } from "lucide-react";
+import { Ban, CheckCircle, Clock, Power, Users, ChevronLeft, ChevronRight, Trash2, Search, CheckSquare, Star } from "lucide-react";
 import axios from "axios";
 import StatsCard from "@/components/ui/stats-card";
 import type { Manong } from "@/types";
@@ -7,6 +7,7 @@ import Modal from "@/components/ui/modal";
 import ManongCard from "@/components/ui/manong-card";
 import clsx from "clsx";
 import { Helmet } from 'react-helmet';
+import SpecialitiesModal from "@/components/ui/specialities-modal";
 
 interface UpdateManongForm {
   firstName: string;
@@ -31,9 +32,16 @@ const Dashboard = () => {
   const [modalTitle, setModalTitle] = useState<string>('My Modal');
   const [modalContent, setModalContent] = useState<ReactNode>(<></>);
   const [hideDeleted, setHideDeleted] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [expandedManongs, setExpandedManongs] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'completed' | 'rating'>('newest');
+  const [overallStats, setOverallStats] = useState({
+    totalCompletedServices: 0,
+    averageOverallRating: 0,
+  });
 
   const toggleExpand = (id: number) => {
     setExpandedManongs(prev => {
@@ -69,6 +77,7 @@ const Dashboard = () => {
     { label: "Deleted", count: stats.deleted, status: "deleted" },
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const fetchManongs = async (page = 1, serviceItemId?: number) => {
     setLoading(true);
     setError(null);
@@ -76,9 +85,17 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       
+      // Build query parameters
+      let url = `${baseApiUrl}/manongs/with-stats?page=${page}&limit=${limit}`;
+      
+      // Add search query if it exists
+      if (searchQuery.trim()) {
+        url += `&search=${encodeURIComponent(searchQuery)}`;
+      }
+      
       const response = await axios.post(
-        `${baseApiUrl}/manongs/all?page=${page}&limit=${limit}`,
-        { serviceItemId: serviceItemId || undefined },
+        url,
+        {}, // Empty body since search is now in query params
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -88,6 +105,7 @@ const Dashboard = () => {
         }
       );
 
+      // Now response.data should have success: true and data: [...]
       if (response.data.success) {
         const data = response.data.data;
 
@@ -107,19 +125,23 @@ const Dashboard = () => {
             deletedAt: item.deletedAt,
           },
           manongProfile: item.manongProfile,
-          providerVerifications: item.providerVerifications,
+          providerVerifications: item.providerVerifications || [],
+          stats: item.stats || {
+            completedServices: 0,
+            averageRating: 0,
+            ratingCount: 0
+          }
         }));
 
-        // Sort first
-        const sorted = [...normalizedManongs].sort((a, b) => {
-          const dateA = new Date(a.user.createdAt!).getTime();
-          const dateB = new Date(b.user.createdAt!).getTime();
-          return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-        });
+        // Calculate overall stats
+        calculateOverallStats(normalizedManongs);
+        
+        // Sort with new options
+        const sorted = sortManongs(normalizedManongs);
 
         setManongs(sorted);
-
-        // Apply tab-based filtering on the *sorted* array
+        
+        // Apply filters
         const selectedTab = tabs[selectedTabIndex];
         let filtered = sorted;
 
@@ -133,28 +155,26 @@ const Dashboard = () => {
           filtered = filtered.filter(m => m.user.status === selectedTab.status);
         }
 
-        // Apply search filter if query exists
-        if (searchQuery.trim()) {
-          filtered = filtered.filter(manong => 
-            manong.user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            manong.user.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            manong.user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            manong.user.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            `${manong.user.firstName} ${manong.user.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
-
+        // No need to apply search filter - backend already did it
         setFilteredManongs(filtered);
 
-        setTotalPages(data.totalPages || 1);
-        setTotalCount(data.totalCount || normalizedManongs.length || 0);
+        setTotalPages(response.data.totalPages || 1);
+        setTotalCount(response.data.totalCount || normalizedManongs.length || 0);
         setCurrentPage(page);
 
         calculateStats(normalizedManongs);
+      } else {
+        setError('Failed to fetch manongs: API returned unsuccessful');
       }
+      
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Error fetching manongs:', err);
+      console.error('Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        url: err.config?.url
+      });
       setError(err.response?.data?.message || 'Failed to fetch manongs');
     } finally {
       setLoading(false);
@@ -198,14 +218,56 @@ const Dashboard = () => {
       );
     }
 
-    filtered = [...filtered].sort((a, b) => {
+    // Apply new sorting
+    filtered = sortManongs(filtered);
+    
+    setFilteredManongs(filtered);
+  };
+
+  const calculateOverallStats = (data: Manong[]) => {
+    const activeManongs = data.filter(m => m.user.deletedAt === null);
+    
+    const totalCompletedServices = activeManongs.reduce(
+      (sum, manong) => sum + (manong.stats?.completedServices || 0), 
+      0
+    );
+    
+    const manongsWithRatings = activeManongs.filter(m => 
+      m.stats?.ratingCount && m.stats.ratingCount > 0
+    );
+    
+    const averageOverallRating = manongsWithRatings.length > 0
+      ? manongsWithRatings.reduce(
+          (sum, manong) => sum + (manong.stats?.averageRating || 0), 
+          0
+        ) / manongsWithRatings.length
+      : 0;
+
+    setOverallStats({
+      totalCompletedServices,
+      averageOverallRating: parseFloat(averageOverallRating.toFixed(1))
+    });
+  };
+
+  const sortManongs = (manongs: Manong[]) => {
+    return [...manongs].sort((a, b) => {
+      if (sortBy === 'completed') {
+        const aJobs = a.stats?.completedServices || 0;
+        const bJobs = b.stats?.completedServices || 0;
+        return bJobs - aJobs;
+      }
+      
+      if (sortBy === 'rating') {
+        const aRating = a.stats?.ratingCount ? a.stats.averageRating : 0;
+        const bRating = b.stats?.ratingCount ? b.stats.averageRating : 0;
+        return bRating - aRating;
+      }
+      
       const dateA = new Date(a.user.createdAt!).getTime();
       const dateB = new Date(b.user.createdAt!).getTime();
       
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
     });
-    
-    setFilteredManongs(filtered);
   };
 
   const handleSearch = (query: string) => {
@@ -288,8 +350,68 @@ const Dashboard = () => {
     );
   };
 
+  const [availableSubServiceItems, setAvailableSubServiceItems] = useState<Array<{
+    id: number;
+    title: string;
+    serviceItem: {
+      id: number;
+      title: string;
+    };
+  }>>([]);
+
+  const fetchAvailableSubServiceItems = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${baseApiUrl}/manongs/sub-service-items/available`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'ngrok-skip-browser-warning': 'true'
+          }
+        }
+      );
+      
+      if (response.data.success) {
+        setAvailableSubServiceItems(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching available sub-service items:', error);
+    }
+  };
+
+  const handleUpdateSpecialities = async (id: number, subServiceItemIds: number[]) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.put(
+        `${baseApiUrl}/manongs/${id}/specialities`,
+        { subServiceItemIds },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // Refresh the manongs data
+        await fetchManongs(currentPage);
+        return response.data;
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error('Error updating specialities:', err);
+      setError(err.response?.data?.message || 'Failed to update specialities');
+      throw err;
+    }
+  };
+
   useEffect(() => {
     fetchManongs(1);
+    fetchAvailableSubServiceItems();
   }, []);
 
   const handleTabChange = (index: number) => {
@@ -418,6 +540,46 @@ const Dashboard = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hideDeleted, manongs]);
 
+  const [isSpecialitiesModalOpen, setIsSpecialitiesModalOpen] = useState(false);
+  const [selectedManongForSpecialities, setSelectedManongForSpecialities] = useState<number | null>(null);
+  const [manongSpecialities, setManongSpecialities] = useState<number[]>([]);
+
+  const handleOpenSpecialitiesModal = (manongId: number, currentSpecialities: number[]) => {
+    setSelectedManongForSpecialities(manongId);
+    setManongSpecialities(currentSpecialities);
+    setIsSpecialitiesModalOpen(true);
+  };
+
+  // Add this function
+  const handleSaveSpecialities = async (selectedIds: number[]) => {
+    if (!selectedManongForSpecialities) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.put(
+        `${baseApiUrl}/manongs/${selectedManongForSpecialities}/specialities`,
+        { subServiceItemIds: selectedIds },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        await fetchManongs(currentPage);
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error('Error updating specialities:', err);
+      setError(err.response?.data?.message || 'Failed to update specialities');
+      throw err;
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -430,7 +592,7 @@ const Dashboard = () => {
       <div className="min-h-screen p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard title="Total" value={stats.total} Icon={Users} />
             <StatsCard
               title="Available"
@@ -459,6 +621,23 @@ const Dashboard = () => {
               Icon={Ban}
               color="text-violet-600"
               bgColor="bg-violet-100"
+            />
+            {/* Add these new stats cards */}
+            <StatsCard
+              title="Total Completed"
+              value={overallStats.totalCompletedServices}
+              Icon={CheckSquare}
+              color="text-emerald-600"
+              bgColor="bg-emerald-100"
+            />
+            <StatsCard
+              title="Avg Rating"
+              value={overallStats.averageOverallRating}
+              Icon={Star}
+              color="text-yellow-600"
+              bgColor="bg-yellow-100"
+              isDecimal={true}
+              showStar={true}
             />
           </div>
 
@@ -551,12 +730,18 @@ const Dashboard = () => {
                   </div>
 
                   <select
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                    value={sortBy}
+                    onChange={(e) => {
+                      setSortBy(e.target.value as 'newest' | 'oldest' | 'completed' | 'rating');
+                      const selectedTab = tabs[selectedTabIndex];
+                      filterManongsByStatus(selectedTab.status);
+                    }}
                     className="select max-w-30"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
+                    <option value="completed">Most Completed Jobs</option>
+                    <option value="rating">Highest Rating</option>
                   </select>
                 </div>
               )}
@@ -579,10 +764,16 @@ const Dashboard = () => {
                         onToggleSelect={toggleSelectItem}
                         onDelete={handleDelete}
                         onUpdate={handleUpdateManong}
+                        onEditSpecialities={() => handleOpenSpecialitiesModal(
+                          m.id, 
+                          m.manongProfile.manongSpecialities?.map(s => s.subServiceItemId) || []
+                        )}
+                        onUpdateSpecialities={handleUpdateSpecialities}
                         onViewDocument={handleViewDocument}
                         isExpanded={expandedManongs.has(m.id)}
                         toggleExpand={() => toggleExpand(m.id)}
                         isDark={localStorage.getItem("theme") == 'dark' ? true : false}
+                        availableSubServiceItems={availableSubServiceItems}
                       />
                     ))}
                   </div>
@@ -684,6 +875,18 @@ const Dashboard = () => {
         >
           {modalContent}
         </Modal>
+
+        <SpecialitiesModal
+          isOpen={isSpecialitiesModalOpen}
+          onClose={() => {
+            setIsSpecialitiesModalOpen(false);
+            setSelectedManongForSpecialities(null);
+          }}
+          currentSpecialities={manongSpecialities}
+          availableItems={availableSubServiceItems}
+          onSave={handleSaveSpecialities}
+          title={`Edit Specialities for Manong #${selectedManongForSpecialities}`}
+        />
       </div>
     </>
   );

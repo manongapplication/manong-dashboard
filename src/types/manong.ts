@@ -7,4 +7,9 @@ export interface Manong {
   user: AppUser;
   manongProfile: ManongProfile;
   providerVerifications?: ProviderVerification[];
+  stats?: {
+    completedServices: number;
+    averageRating: number;
+    ratingCount: number;
+  };
 }

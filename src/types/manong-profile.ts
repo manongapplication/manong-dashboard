@@ -13,6 +13,7 @@ export interface ManongProfile {
   experienceDescription?: string;
   manongSpecialities?: ManongSpeciality[];
   manongAssistants?: ManongAssistant[];
+  dailyServiceLimit?: number;
 
   deletedAt?: Date;
 }

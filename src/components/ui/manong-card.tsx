@@ -11,6 +11,7 @@ interface UpdateManongForm {
   addressLine: string;
   status: string;
   yearsExperience: number;
+  dailyServiceLimit: number;
   experienceDescription: string;
   subServiceItemIds: number[];
 }
@@ -82,6 +83,7 @@ const ManongCard = ({
       addressLine: manong.user.addressLine || '',
       status: manong.user.status || 'pending',
       yearsExperience: manong.manongProfile.yearsExperience || 0,
+      dailyServiceLimit: manong.manongProfile.dailyServiceLimit || 5,
       experienceDescription: manong.manongProfile.experienceDescription || '',
       subServiceItemIds: selectedSpecialities,
     });
@@ -303,8 +305,7 @@ const ManongCard = ({
         </button>
       </div>
 
-      {/* Details Grid */}
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+      <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm">
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
           <span className="text-slate-500">Specialities</span>
           <div className="p-2 rounded-lg">
@@ -384,7 +385,32 @@ const ManongCard = ({
             )}
           </div>
         </div>
-        
+      </div>
+
+      {/* Details Grid */}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
+          <span className="text-slate-500">Daily Service Limit</span>
+          {isEditing ? (
+            <div>
+              <input
+                {...register("dailyServiceLimit", { 
+                  required: "Limit is required",
+                  min: { value: 0, message: "Limit must be positive" }
+                })}
+                type="number"
+                className="px-2 py-1 text-sm border border-slate-300 rounded w-24"
+                placeholder="Limit"
+              />
+              {errors.dailyServiceLimit && (
+                <p className="text-xs text-red-600 mt-1">{errors.dailyServiceLimit.message}</p>
+              )}
+            </div>
+          ) : (
+            <span className="font-medium">{manong.manongProfile.dailyServiceLimit || 5}</span>
+          )}
+        </div>
+
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
           <span className="text-slate-500">Experience</span>
           {isEditing ? (

@@ -187,9 +187,9 @@ const Dashboard = () => {
       filtered = filtered.filter(m => m.user.deletedAt === null);
     }
 
-    // Filter by selected tab
+    // Filter by selected tab - IMPORTANT: Use manongProfile.status, not user.status
     if (selectedTab.status) {
-      filtered = filtered.filter(m => m.user.status === selectedTab.status);
+      filtered = filtered.filter(m => m.manongProfile.status === selectedTab.status);
     }
 
     // Apply search filter if query exists

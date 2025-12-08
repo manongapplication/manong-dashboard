@@ -187,6 +187,7 @@ const ManongCard = ({
           {titles.join(", ")}{" "}
           <button
             onClick={toggleExpand}
+            type="button"
             className="text-blue-600 hover:underline text-sm cursor-pointer"
           >
             show less
@@ -204,6 +205,7 @@ const ManongCard = ({
           {visible.join(", ")}{" "}
           <button
             onClick={toggleExpand}
+            type="button"
             className="text-blue-600 hover:underline text-sm cursor-pointer"
           >
             (+{hiddenCount} more)

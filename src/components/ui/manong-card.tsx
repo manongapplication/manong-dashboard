@@ -13,6 +13,7 @@ interface UpdateManongForm {
   yearsExperience: number;
   dailyServiceLimit: number;
   experienceDescription: string;
+  isProfessionallyVerified: boolean;
   subServiceItemIds: number[];
 }
 
@@ -85,6 +86,7 @@ const ManongCard = ({
       yearsExperience: manong.manongProfile.yearsExperience || 0,
       dailyServiceLimit: manong.manongProfile.dailyServiceLimit || 5,
       experienceDescription: manong.manongProfile.experienceDescription || '',
+      isProfessionallyVerified: manong.manongProfile.isProfessionallyVerified || false,
       subServiceItemIds: selectedSpecialities,
     });
   };
@@ -441,8 +443,20 @@ const ManongCard = ({
         </div>
         
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>
-          <span className="text-slate-500">Verified</span>
-          <span className="font-medium text-right">{manong.manongProfile.isProfessionallyVerified ? "Yes" : "No"}</span>
+          <span className="text-slate-500">Professionally Verified</span>
+          {isEditing ? (
+            <div>
+              <select
+                {...register("isProfessionallyVerified")}
+                className="select text-sm border border-slate-300 rounded"
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          ) : (
+            <span className="font-medium text-right">{manong.manongProfile.isProfessionallyVerified ? "Yes" : "No"}</span>
+          )}
         </div>
         
         <div className={clsx(isDark ? "border-slate-600" : "border-slate-100", "flex justify-between py-2 border-b")}>

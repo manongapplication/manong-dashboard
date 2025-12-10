@@ -381,14 +381,14 @@ const AppVersionsPage = () => {
       <div className="max-h-[60vh] overflow-y-auto">
         <div className="mb-4">
           <h4 className="font-semibold mb-2">What's New:</h4>
-          <p className="text-gray-700 whitespace-pre-line">{version.whatsNew || 'No description provided.'}</p>
+          <p className="whitespace-pre-line">{version.whatsNew || 'No description provided.'}</p>
         </div>
         
         {version.releaseNotes && (
           <div>
             <h4 className="font-semibold mb-2">Full Release Notes:</h4>
             <div 
-              className="prose max-w-none text-gray-700"
+              className="prose max-w-none"
               dangerouslySetInnerHTML={{ __html: version.releaseNotes }}
             />
           </div>

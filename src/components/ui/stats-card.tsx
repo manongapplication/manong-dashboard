@@ -52,7 +52,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
       <div className={`${bgColor} ${color} p-3 rounded-lg`}>
         <Icon size={24} />
       </div>
-      <div className="flex-1">
+      <div>
         <p className={clsx(
           "text-sm font-medium",
           localStorage.getItem("theme") == 'dark' 

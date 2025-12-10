@@ -893,7 +893,7 @@ const CreateVersionFormComponent = ({ onSubmit, onCancel }: { onSubmit: (data: C
           <select
             value={formData.platform}
             onChange={(e) => setFormData({...formData, platform: e.target.value})}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="select w-full px-3 py-2 rounded-md"
             required
           >
             <option value="ANDROID">Android</option>

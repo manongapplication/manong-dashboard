@@ -4,39 +4,55 @@ import type { ForwardRefExoticComponent, RefAttributes } from "react";
 
 type IconType = ForwardRefExoticComponent<LucideProps & RefAttributes<SVGSVGElement>>;
 
-interface StatsCard {
+interface StatsCardProps {
   title: string;
-  value: number;
+  value: number | string;
   Icon: IconType;
   color?: string;
   bgColor?: string;
-  isDecimal?: boolean; // Add this
-  showStar?: boolean; // Add this for rating stars
+  isDecimal?: boolean;
+  showStar?: boolean;
+  isClickable?: boolean;
+  onClick?: () => void;
 }
 
-const StatsCard: React.FC<StatsCard> = ({ 
+const StatsCard: React.FC<StatsCardProps> = ({ 
   title,
   value,
   Icon,
   color,
   bgColor,
   isDecimal = false,
-  showStar = false
+  showStar = false,
+  isClickable = false,
+  onClick
 }) => {
   // Format the value
-  const formattedValue = isDecimal ? value.toFixed(1) : value.toLocaleString();
+  const formattedValue = typeof value === 'number' 
+    ? (isDecimal ? value.toFixed(1) : value.toLocaleString())
+    : value;
+  
+  const handleClick = () => {
+    if (isClickable && onClick) {
+      onClick();
+    }
+  };
   
   return (
-    <div className={clsx(
-      localStorage.getItem("theme") == 'dark' 
-        ? "border-slate-700 bg-slate-800" 
-        : "bg-white border-slate-200", 
-      "rounded-xl shadow-sm border p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
-    )}>
+    <div 
+      onClick={handleClick}
+      className={clsx(
+        localStorage.getItem("theme") == 'dark' 
+          ? "border-slate-700 bg-slate-800" 
+          : "bg-white border-slate-200", 
+        "rounded-xl shadow-sm border p-6 flex items-center gap-4 hover:shadow-md transition-shadow",
+        isClickable && "cursor-pointer hover:border-blue-300 active:scale-[0.98] transition-transform"
+      )}
+    >
       <div className={`${bgColor} ${color} p-3 rounded-lg`}>
         <Icon size={24} />
       </div>
-      <div>
+      <div className="flex-1">
         <p className={clsx(
           "text-sm font-medium",
           localStorage.getItem("theme") == 'dark' 
@@ -54,6 +70,16 @@ const StatsCard: React.FC<StatsCard> = ({
           {formattedValue}
           {showStar && " ★"}
         </p>
+        {isClickable && (
+          <p className={clsx(
+            "text-xs mt-1",
+            localStorage.getItem("theme") == 'dark' 
+              ? "text-blue-400" 
+              : "text-blue-600"
+          )}>
+            Click to view
+          </p>
+        )}
       </div>
     </div>
   );

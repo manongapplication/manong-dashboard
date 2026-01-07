@@ -9,13 +9,13 @@ const Layout: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const isAdmin = false;
+  const isAdmin = localStorage.getItem('isAdmin');
 
   const navItems = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
     { to: "/users", label: "Users", icon: Users },
 
-    ...(isAdmin
+    ...(isAdmin == "true"
       ? [
           { to: "/services", label: "Services", icon: ToolCase },
           { to: "/service-requests", label: "Service Requests", icon: Briefcase },

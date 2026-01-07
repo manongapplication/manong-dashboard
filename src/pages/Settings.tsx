@@ -19,6 +19,7 @@ const Settings: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("isAdmin");
     window.location.href = "/login"; // adjust to your route
   };
 

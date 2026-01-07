@@ -9,14 +9,22 @@ const Layout: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  const isAdmin = localStorage.getItem('isAdmin');
+
   const navItems = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
     { to: "/users", label: "Users", icon: Users },
-    { to: "/services", label: "Services", icon: ToolCase },
-    { to: "/service-requests", label: "Service Requests", icon: Briefcase },
-    { to: "/app-maintenance", label: "App Maintenance", icon: WrenchIcon },
-    { to: "/app-versions", label: "App Versions", icon: CookingPot },
-    { to: "/urgency-levels", label: "Urgency Levels", icon: Clock },
+
+    ...(isAdmin
+      ? [
+          { to: "/services", label: "Services", icon: ToolCase },
+          { to: "/service-requests", label: "Service Requests", icon: Briefcase },
+          { to: "/app-maintenance", label: "App Maintenance", icon: WrenchIcon },
+          { to: "/app-versions", label: "App Versions", icon: CookingPot },
+          { to: "/urgency-levels", label: "Urgency Levels", icon: Clock },
+        ]
+      : []),
+
     { to: "/refund-requests", label: "Refund Requests", icon: NotebookPen },
     { to: "/manong-reports", label: "Manong Reports", icon: Notebook },
     { to: "/referral-codes", label: "Referral Codes", icon: Users },
@@ -60,6 +68,7 @@ const Layout: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("isAdmin");
     setDropdownOpen(false);
     navigate("/login");
   };

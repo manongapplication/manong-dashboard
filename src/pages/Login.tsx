@@ -42,6 +42,7 @@ const Login: React.FC = () => {
         clearMessages();
         if (response.data.token != null) {
           localStorage.setItem('token', response.data.token);
+          localStorage.setItem('isAdmin', response.data.isAdmin);
           setMessages('Successfully login!');
           navigate('/');
         } else {

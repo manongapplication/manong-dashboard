@@ -9,7 +9,7 @@ const Layout: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const isAdmin = localStorage.getItem('isAdmin');
+  const isAdmin = false;
 
   const navItems = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },

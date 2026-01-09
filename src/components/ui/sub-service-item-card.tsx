@@ -6,15 +6,17 @@ import { useState, useRef, useEffect } from "react";
 
 interface SubServiceItemCardProps {
   subServiceItem: SubServiceItem;
+  serviceItemId: number; // Add this - the parent service ID
   isEditing?: boolean;
   onClickCard: (id: number) => void;
   onDelete: (id: number) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onChangeSubValue: (id: number, key: string, value: any) => void;
+  onChangeSubValue: (serviceId: number, subId: number, key: string, value: any) => void;
 }
 
 const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({ 
   subServiceItem, 
+  serviceItemId, // Destructure the new prop
   isEditing, 
   onClickCard, 
   onDelete, 
@@ -35,7 +37,8 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
   }, [subServiceItem.description]);
 
   const handleDescriptionSave = () => {
-    onChangeSubValue(subServiceItem.id, 'description', tempDescription);
+    // Pass both serviceId and subId to onChangeSubValue
+    onChangeSubValue(serviceItemId, subServiceItem.id, 'description', tempDescription);
     setIsEditingDescription(false);
   };
 
@@ -106,7 +109,7 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
               type="text"
               className="input flex flex-1"
               value={subServiceItem.title}
-              onChange={(e) => onChangeSubValue(subServiceItem.id, 'title', e.target.value)}
+              onChange={(e) => onChangeSubValue(serviceItemId, subServiceItem.id, 'title', e.target.value)}
               onClick={(e) => e.stopPropagation()}
               disabled={subServiceItem.markAsDelete}
             />
@@ -225,7 +228,7 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
               type="number"
               value={subServiceItem.cost ?? 0}
               className="input w-20"
-              onChange={(e) => onChangeSubValue(subServiceItem.id, 'cost', Number(e.target.value))}
+              onChange={(e) => onChangeSubValue(serviceItemId, subServiceItem.id, 'cost', Number(e.target.value))}
               onClick={(e) => e.stopPropagation()}
               disabled={subServiceItem.markAsDelete}
             />

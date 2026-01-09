@@ -265,20 +265,35 @@ const ServicesPage: React.FC = () => {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onChangeSubValue = (id: number, key: string, value: any) => {
-    setServicesItem((prev) =>
-      prev?.map((item) =>
-        item.id === selectedId
-          ? {
-              ...item,
-              subServiceItems: item.subServiceItems.map((sub) =>
-                sub.id === id ? { ...sub, [key]: value } : sub
-              ),
-            }
-          : item
-      )
-    );
-  }
+  const onChangeSubValue = (serviceId: number, subId: number, key: string, value: any) => {
+  setServicesItem((prev) =>
+    prev?.map((item) =>
+      item.id === serviceId
+        ? {
+            ...item,
+            subServiceItems: item.subServiceItems.map((sub) =>
+              sub.id === subId ? { ...sub, [key]: value } : sub
+            ),
+          }
+        : item
+    )
+  );
+};
+
+const handleSubServiceDelete = (serviceId: number, subId: number) => {
+  setServicesItem((prev) =>
+    prev?.map((item) =>
+      item.id === serviceId
+        ? {
+            ...item,
+            subServiceItems: item.subServiceItems.map((sub) =>
+              sub.id === subId ? { ...sub, markAsDelete: !sub.markAsDelete } : sub
+            ),
+          }
+        : item
+    )
+  );
+};
 
   const handleCloseHexColorPicker = () => {
     if (selectedSubServiceId) {
@@ -822,15 +837,16 @@ const ServicesPage: React.FC = () => {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-2 gap-2">
                     {paginatedNonEditingSubServices.map((subItem) => (
-                      <SubServiceItemCard
-                        key={subItem.id}
-                        subServiceItem={subItem}
-                        isEditing={isEditing}
-                        onClickCard={() => {}}
-                        onChangeSubValue={onChangeSubValue}
-                        onDelete={() => {}}
-                      />
-                    ))}
+  <SubServiceItemCard
+    key={subItem.id}
+    subServiceItem={subItem}
+    serviceItemId={selectedId} // Pass the service ID
+    isEditing={isEditing}
+    onClickCard={() => {}}
+    onChangeSubValue={onChangeSubValue}
+    onDelete={() => {}}
+  />
+))}
                   </div>
                   <Pagination 
                     currentPage={nonEditingCurrentPage}
@@ -919,32 +935,20 @@ const ServicesPage: React.FC = () => {
             ) : (
               <>
                 {paginatedModalSubServices.map((subItem) => (
-                  <SubServiceItemCard
-                    key={subItem.id}
-                    subServiceItem={subItem}
-                    isEditing={isEditing}
-                    onClickCard={(id) => {
-                      setSelectedSubServiceId(id);
-                      setShowColorPicker(true);
-                      setIsModalOpen(false);
-                    }}
-                    onChangeSubValue={onChangeSubValue}
-                    onDelete={(id) => {
-                      setServicesItem((prev) =>
-                        prev?.map((item) =>
-                          item.id === selectedId
-                            ? {
-                                ...item,
-                                subServiceItems: item.subServiceItems.map((sub) =>
-                                  sub.id === id ? { ...sub, markAsDelete: !sub.markAsDelete } : sub
-                                ),
-                              }
-                            : item
-                        )
-                      );
-                    }}
-                  />
-                ))}
+  <SubServiceItemCard
+    key={subItem.id}
+    subServiceItem={subItem}
+    serviceItemId={selectedId} // Pass the service ID
+    isEditing={isEditing}
+    onClickCard={(id) => {
+      setSelectedSubServiceId(id);
+      setShowColorPicker(true);
+      setIsModalOpen(false);
+    }}
+    onChangeSubValue={onChangeSubValue} // This now accepts serviceId, subId, key, value
+    onDelete={(id) => handleSubServiceDelete(selectedId, id)}
+  />
+))}
                 <Pagination 
                   currentPage={modalCurrentPage}
                   totalPages={modalTotalPages}

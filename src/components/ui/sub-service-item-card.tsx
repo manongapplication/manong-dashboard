@@ -29,6 +29,11 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Sync tempDescription when subServiceItem.description changes
+  useEffect(() => {
+    setTempDescription(subServiceItem.description || '');
+  }, [subServiceItem.description]);
+
   const handleDescriptionSave = () => {
     onChangeSubValue(subServiceItem.id, 'description', tempDescription);
     setIsEditingDescription(false);

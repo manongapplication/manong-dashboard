@@ -4,7 +4,7 @@ import type { ServiceItem, SubServiceItem } from "@/types";
 import { ServiceItemStatus, serviceItemStatusOptions } from "@/types/service-item-status";
 import axios from "axios";
 import clsx from "clsx";
-import { PencilIcon, PlusSquare, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { PencilIcon, PlusSquare, X, Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import React, { useEffect, useState, useMemo } from "react";
 import { HexColorPicker } from "react-colorful";
 import IconifyPicker from "@zunicornshift/mui-iconify-picker";
@@ -22,25 +22,26 @@ const ServicesPage: React.FC = () => {
   const baseApiUrl = import.meta.env.VITE_API_URL;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ oldServicesItem, setOldServicesItem ] = useState<ServiceItem[]>();
-  const [ servicesItem, setServicesItem ] = useState<ServiceItem[]>();
-  const [ isEditing, setIsEditing ] = useState(false);
-  const [ selectedId, setSelectedId ] = useState(-1);
-  const [ deletedId, setDeletedId ] = useState(-1);
-  const [ hasChanges, setHasChanges ] = useState(false);
-  const [ showColorPicker, setShowColorPicker ] = useState(false);
-  const [ isConfirmDialogOpen, setConfirmDialogOpen ] = useState(false);
-  const [ selectedColorInput, setSelectedColorInput ] = useState('iconColor');
-  const [ isModalOpen, setIsModalOpen ] = useState(false);
-  const [ modalTitle, setModalTitle ] = useState('');
-  const [ selectedSubServiceId, setSelectedSubServiceId ] = useState<number | null>();
+  const [oldServicesItem, setOldServicesItem] = useState<ServiceItem[]>();
+  const [servicesItem, setServicesItem] = useState<ServiceItem[]>();
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedId, setSelectedId] = useState(-1);
+  const [deletedId, setDeletedId] = useState(-1);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [isConfirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedColorInput, setSelectedColorInput] = useState('iconColor');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [selectedSubServiceId, setSelectedSubServiceId] = useState<number | null>();
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [subServiceSearchQuery, setSubServiceSearchQuery] = useState('');
   const [nonEditingSubServiceSearchQuery, setNonEditingSubServiceSearchQuery] = useState('');
   const [modalCurrentPage, setModalCurrentPage] = useState(1);
   const [nonEditingCurrentPage, setNonEditingCurrentPage] = useState(1);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
+  // Global search state
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
 
   const fetchServices = async () => {
     const response = await axios.get(`${baseApiUrl}/service-items`);
@@ -131,6 +132,7 @@ const ServicesPage: React.FC = () => {
     setServicesItem(oldServicesItem);
     setHasChanges(false);
     setShowColorPicker(false);
+    setGlobalSearchQuery('');
   }
 
   const resetToDefaults = async () => {
@@ -165,6 +167,7 @@ const ServicesPage: React.FC = () => {
         setHasChanges(false);
         setShowColorPicker(false);
         setIsEditing(false);
+        setGlobalSearchQuery('');
 
         setSuccessMessage("✅ Services and sub-services have been reset to defaults!");
       } else {
@@ -178,8 +181,6 @@ const ServicesPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-
 
   const saveData = async () => {
     const token = localStorage.getItem('token');
@@ -214,6 +215,7 @@ const ServicesPage: React.FC = () => {
       if (response.data.success) {
         fetchServices();
         setSuccessMessage('Service Items saved!');
+        setGlobalSearchQuery('');
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -341,6 +343,34 @@ const ServicesPage: React.FC = () => {
     setModalTitle(selectedServiceTitle ?? '');
     setIsModalOpen(true);
   }
+
+  // Global search filter for services and sub-services
+  const filteredServices = useMemo(() => {
+    if (!servicesItem) return [];
+    
+    if (!globalSearchQuery.trim()) {
+      return servicesItem;
+    }
+
+    const query = globalSearchQuery.toLowerCase();
+    
+    return servicesItem.filter((service) => {
+      // Check service title
+      const serviceTitleMatch = service.title.toLowerCase().includes(query);
+      
+      // Check service description
+      const serviceDescMatch = service.description?.toLowerCase().includes(query) ?? false;
+      
+      // Check sub-services
+      const hasMatchingSubService = service.subServiceItems?.some((sub) => {
+        const subTitleMatch = sub.title.toLowerCase().includes(query);
+        const subDescMatch = sub.description?.toLowerCase().includes(query) ?? false;
+        return subTitleMatch || subDescMatch;
+      }) ?? false;
+      
+      return serviceTitleMatch || serviceDescMatch || hasMatchingSubService;
+    });
+  }, [servicesItem, globalSearchQuery]);
 
   // Filter sub-services based on search query for modal
   const filteredSubServices = useMemo(() => {
@@ -488,6 +518,42 @@ const ServicesPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Global Search Bar */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search services, sub-services, and descriptions..."
+                  value={globalSearchQuery}
+                  onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                  className={clsx(
+                    localStorage.getItem("theme") == 'dark' ? "border-gray-700 bg-gray-800" : "border-gray-300 bg-white",
+                    "w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  )}
+                />
+                {globalSearchQuery && (
+                  <button
+                    onClick={() => setGlobalSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {globalSearchQuery && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                  <Filter className="w-3 h-3" />
+                  <span>
+                    Found {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
+                    {filteredServices.some(s => s.subServiceItems?.length > 0) && 
+                      ` with ${filteredServices.reduce((acc, service) => acc + (service.subServiceItems?.length || 0), 0)} sub-services`
+                    }
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Color Picker Modal for Mobile */}
             {isEditing && showColorPicker && (
               <>
@@ -625,75 +691,92 @@ const ServicesPage: React.FC = () => {
                     <p className="mt-4 text-slate-600">Loading services...</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                    {servicesItem && servicesItem.map((item) => 
-                      <div key={item.id} className={clsx(item.markAsDelete && "bg-red-200 rounded-2xl")}>
-                        <ServiceItemCard 
-                          serviceItem={item}
-                          isEditing={isEditing} 
-                          onClickCard={(id) => {
-                            const clickedItem = servicesItem.find(item => item.id === id);
-                            if (!clickedItem) return;
+                  <>
+                    {globalSearchQuery && filteredServices.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500">No services or sub-services found matching "{globalSearchQuery}"</p>
+                        <button
+                          onClick={() => setGlobalSearchQuery('')}
+                          className="mt-4 text-blue-500 hover:text-blue-700 text-sm"
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+                        {filteredServices.map((item) => 
+                          <div key={item.id} className={clsx(item.markAsDelete && "bg-red-200 rounded-2xl")}>
+                            <ServiceItemCard 
+                              serviceItem={item}
+                              isEditing={isEditing} 
+                              onClickCard={(id) => {
+                                const clickedItem = servicesItem?.find(item => item.id === id);
+                                if (!clickedItem) return;
 
-                            setSelectedSubServiceId(null);
-                            setSelectedId(id);
-                            if (!isEditing) return;
-                            setShowColorPicker(true);
-                          }}
-                          onDelete={(id) => {
-                            const clickedItem = servicesItem.find(item => item.id === id);
-                            if (!clickedItem) return;
+                                setSelectedSubServiceId(null);
+                                setSelectedId(id);
+                                if (!isEditing) return;
+                                setShowColorPicker(true);
+                              }}
+                              onDelete={(id) => {
+                                const clickedItem = servicesItem?.find(item => item.id === id);
+                                if (!clickedItem) return;
 
-                            if (clickedItem.markAsDelete) {
-                              handleUndoDelete();
-                              return;
-                            }
+                                if (clickedItem.markAsDelete) {
+                                  handleUndoDelete();
+                                  return;
+                                }
 
-                            setSelectedId(id);
-                            setDeletedId(id);
-                            setConfirmDialogOpen(true);
-                          }}
-                          onChangeValue={onChangeValue}
-                        />
-                        {isEditing && (
-                          <div className="flex flex-col justify-center gap-2 mt-2 mb-2">
-                            <select
-                              value={item.status}
-                              className="select"
-                              onChange={(e) => onChangeValue(item.id, 'status', e.target.value)}
-                            >
-                              {serviceItemStatusOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              className="btn text-xs flex flex-row gap-2 items-center"
-                              onClick={() => handleSubServiceItemEdit(item.id)}
-                            >
-                              <PencilIcon className="w-3 h-3" />
-                              Sub Services
-                            </button>
+                                setSelectedId(id);
+                                setDeletedId(id);
+                                setConfirmDialogOpen(true);
+                              }}
+                              onChangeValue={onChangeValue}
+                            />
+                            {isEditing && (
+                              <div className="flex flex-col justify-center gap-2 mt-2 mb-2">
+                                <select
+                                  value={item.status}
+                                  className="select"
+                                  onChange={(e) => onChangeValue(item.id, 'status', e.target.value)}
+                                >
+                                  {serviceItemStatusOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  className="btn text-xs flex flex-row gap-2 items-center"
+                                  onClick={() => handleSubServiceItemEdit(item.id)}
+                                >
+                                  <PencilIcon className="w-3 h-3" />
+                                  Sub Services
+                                </button>
+                              </div>
+                            )}
                           </div>
+                        )}
+                        {isEditing && (
+                          <label 
+                            className="block cursor-pointer" 
+                            onClick={handleAddServiceItem}
+                          >
+                            <div className="flex flex-col gap-1 sm:gap-2 items-center">
+                              <div
+                                className="border-2 border-dashed border-gray-300 rounded-2xl p-3 sm:p-4 text-center hover:border-[#04697D] transition-all w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-gray-400"
+                              >
+                                <PlusSquare className="w-5 h-5" />
+                              </div>
+                              <p className="text-center text-xs sm:text-sm text-gray-500">Add</p>
+                            </div>
+                          </label>
                         )}
                       </div>
                     )}
-                    <label 
-                      className="block cursor-pointer" 
-                      onClick={handleAddServiceItem}
-                    >
-                      <div className="flex flex-col gap-1 sm:gap-2 items-center">
-                        <div
-                          className="border-2 border-dashed border-gray-300 rounded-2xl p-3 sm:p-4 text-center hover:border-[#04697D] transition-all w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-gray-400"
-                        >
-                          <PlusSquare className="w-5 h-5" />
-                        </div>
-                        <p className="text-center text-xs sm:text-sm text-gray-500">Add</p>
-                      </div>
-                    </label>
-                  </div>
+                  </>
                 )}
               </div>
             </div>

@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react";
 
 interface SubServiceItemCardProps {
   subServiceItem: SubServiceItem;
-  serviceItemId: number; // Add this - the parent service ID
+  serviceItemId: number;
   isEditing?: boolean;
   onClickCard: (id: number) => void;
   onDelete: (id: number) => void;
@@ -16,7 +16,7 @@ interface SubServiceItemCardProps {
 
 const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({ 
   subServiceItem, 
-  serviceItemId, // Destructure the new prop
+  serviceItemId,
   isEditing, 
   onClickCard, 
   onDelete, 
@@ -30,6 +30,7 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
   const [tempDescription, setTempDescription] = useState(subServiceItem.description || '');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionSectionRef = useRef<HTMLDivElement>(null);
 
   // Sync tempDescription when subServiceItem.description changes
   useEffect(() => {
@@ -37,8 +38,10 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
   }, [subServiceItem.description]);
 
   const handleDescriptionSave = () => {
-    // Pass both serviceId and subId to onChangeSubValue
-    onChangeSubValue(serviceItemId, subServiceItem.id, 'description', tempDescription);
+    // Only update if the description actually changed
+    if (tempDescription !== subServiceItem.description) {
+      onChangeSubValue(serviceItemId, subServiceItem.id, 'description', tempDescription);
+    }
     setIsEditingDescription(false);
   };
 
@@ -54,6 +57,8 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Reset tempDescription to current value before starting edit
+    setTempDescription(subServiceItem.description || '');
     setIsEditingDescription(true);
   };
 
@@ -75,19 +80,32 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
   // Close editing when clicking outside (for better UX)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isEditingDescription && textareaRef.current && !textareaRef.current.contains(event.target as Node)) {
+      // Don't save if we're not in editing mode
+      if (!isEditingDescription) return;
+      
+      // Check if click is outside the description section
+      if (descriptionSectionRef.current && 
+          !descriptionSectionRef.current.contains(event.target as Node)) {
         handleDescriptionSave();
       }
     };
 
     if (isEditingDescription) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Add a small delay to prevent immediate save on click
+      const timer = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+      
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isEditingDescription]);
+  }, [isEditingDescription, tempDescription]); // Add tempDescription as dependency
 
   return (
     <div className={clsx(subServiceItem.markAsDelete && "bg-red-200", "block mb-2")}>
@@ -132,7 +150,11 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
 
         {/* Description Section */}
         {(hasDescription || isEditing) && (
-          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+          <div 
+            ref={descriptionSectionRef} 
+            className="mt-2" 
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs text-gray-500 font-medium">Description:</label>
               {isEditing && !isEditingDescription && (
@@ -155,6 +177,16 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
                   onChange={(e) => setTempDescription(e.target.value)}
                   className="w-full min-h-[80px] p-2 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   placeholder="Enter description for this sub-service..."
+                  onKeyDown={(e) => {
+                    // Save on Enter (with Ctrl or Cmd)
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      handleDescriptionSave();
+                    }
+                    // Cancel on Escape
+                    if (e.key === 'Escape') {
+                      handleDescriptionCancel();
+                    }
+                  }}
                 />
                 <div className="flex items-center gap-2">
                   <button
@@ -173,6 +205,9 @@ const SubServiceItemCard: React.FC<SubServiceItemCardProps> = ({
                     <Undo className="w-3 h-3" />
                     Cancel
                   </button>
+                  <span className="text-xs text-gray-500 ml-auto">
+                    Ctrl/Cmd + Enter to save
+                  </span>
                 </div>
               </div>
             ) : (

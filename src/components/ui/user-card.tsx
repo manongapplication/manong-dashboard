@@ -164,6 +164,7 @@ const UserCard = ({
               <>
                 <h3 className="font-semibold truncate">{getFullName(user)}</h3>
                 <p className="text-sm text-slate-500">{user.phone}</p>
+                <p className="text-sm text-slate-500">{user.email}</p>
               </>
             )}
           </div>

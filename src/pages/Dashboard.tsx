@@ -9,14 +9,18 @@ import clsx from "clsx";
 import { Helmet } from 'react-helmet';
 import SpecialitiesModal from "@/components/ui/specialities-modal";
 
-interface UpdateManongForm {
+export interface UpdateManongForm {
   firstName: string;
   lastName: string;
   phone: string;
   addressLine: string;
   status: string;
+  email?: string;
   yearsExperience: number;
+  dailyServiceLimit: number;
   experienceDescription: string;
+  isProfessionallyVerified: boolean;
+  subServiceItemIds: number[];
 }
 
 const Dashboard = () => {

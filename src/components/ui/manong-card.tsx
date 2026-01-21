@@ -3,19 +3,7 @@ import { MoreVertical, Eye, Edit, Trash2, CheckCircle, Ban, User, X, Settings } 
 import { useForm } from "react-hook-form";
 import clsx from "clsx";
 import type { Manong, ManongProfile, AppUser } from "@/types";
-
-interface UpdateManongForm {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  addressLine: string;
-  status: string;
-  yearsExperience: number;
-  dailyServiceLimit: number;
-  experienceDescription: string;
-  isProfessionallyVerified: boolean;
-  subServiceItemIds: number[];
-}
+import type { UpdateManongForm } from "@/pages/Dashboard";
 
 interface ManongCardProps {
   manong: Manong;
@@ -83,6 +71,7 @@ const ManongCard = ({
       phone: manong.user.phone || '',
       addressLine: manong.user.addressLine || '',
       status: manong.user.status || 'pending',
+      email: manong.user.email || '',
       yearsExperience: manong.manongProfile.yearsExperience || 0,
       dailyServiceLimit: manong.manongProfile.dailyServiceLimit || 5,
       experienceDescription: manong.manongProfile.experienceDescription || '',
@@ -284,11 +273,28 @@ const ManongCard = ({
                     <p className="text-xs text-red-600 mt-1">{errors.lastName.message}</p>
                   )}
                 </div>
+                <div>
+                  <input
+                    {...register("email", {
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Invalid email address"
+                      }
+                    })}
+                    type="email"
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
+                    placeholder="Email"
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>
+                  )}
+                </div>
               </div>
             ) : (
               <>
                 <h3 className="font-semibold truncate">{getFullName(manong.user)}</h3>
                 <p className="text-sm text-slate-500">{manong.user?.phone}</p>
+                <p className="text-xs text-slate-400 truncate">{manong.user?.email}</p>
               </>
             )}
           </div>

@@ -14,6 +14,7 @@ export interface UpdateUserForm {
   phone: string;
   addressLine: string;
   status: string;
+  email?: string;
   yearsExperience: number;
   experienceDescription: string;
 }

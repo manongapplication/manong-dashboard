@@ -41,6 +41,7 @@ const UserCard = ({
       phone: user.phone || '',
       addressLine: user.addressLine || '',
       status: user.status || 'pending',
+      email: user.email || '',
     });
   };
 
@@ -140,6 +141,22 @@ const UserCard = ({
                   />
                   {errors.lastName && (
                     <p className="text-xs text-red-600 mt-1">{errors.lastName.message}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    {...register("email", {
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Invalid email address"
+                      }
+                    })}
+                    type="email"
+                    className="w-full px-2 py-1 text-sm border border-slate-300 rounded"
+                    placeholder="Email"
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>
                   )}
                 </div>
               </div>

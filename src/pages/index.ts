@@ -9,3 +9,4 @@ export { default as ManongReportsPage } from './ManongReportsPage';
 export { default as ReferralCodesPage } from './ReferralCodesPage';
 export { default as ServiceRequestsPage } from './ServiceRequestsPage';
 export { default as AppVersionsPage } from './AppVersionsPage';
+export { default as PayoutPage } from './PayoutsPage';

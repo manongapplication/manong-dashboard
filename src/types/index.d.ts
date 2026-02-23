@@ -15,3 +15,7 @@ export * from './referral-code';
 export * from './transaction-type';
 export * from './payment-transaction';
 export * from './payment-method';
+export * from './manong-wallet';
+export * from './wallet-transaction-status';
+export * from './wallet-transaction-type';
+export * from './manong-wallet-transaction';

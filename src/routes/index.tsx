@@ -1,6 +1,7 @@
 import Layout from "@/components/layout/Layout";
 import ProtectedRoute from "@/components/protected-route";
 import { AppMaintenancePage, Dashboard, ReferralCodesPage, Login, ManongReportsPage, ServicesPage, Settings, UsersPage, ServiceRequestsPage, AppVersionsPage } from "@/pages";
+import PayoutsPage from "@/pages/PayoutsPage";
 import RefundRequestsPage from "@/pages/RefundRequestsPage";
 import UrgencyLevelsPage from "@/pages/UrgencyLevelsPage";
 import type { RouteObject } from "react-router-dom";
@@ -25,6 +26,7 @@ const routes: RouteObject[] = [
       { path: "refund-requests", element: <RefundRequestsPage /> },
       { path: "manong-reports", element: <ManongReportsPage /> },
       { path: "referral-codes", element: <ReferralCodesPage /> },
+      { path: "payouts-page", element: <PayoutsPage /> },
     ],
   },
   { path: "/login", element: <Login /> }

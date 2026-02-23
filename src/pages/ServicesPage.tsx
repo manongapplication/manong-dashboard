@@ -4,8 +4,8 @@ import type { ServiceItem, SubServiceItem } from "@/types";
 import { ServiceItemStatus, serviceItemStatusOptions } from "@/types/service-item-status";
 import axios from "axios";
 import clsx from "clsx";
-import { PencilIcon, PlusSquare, X, Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
-import React, { useEffect, useState, useMemo } from "react";
+import { PencilIcon, PlusSquare, X, Search, ChevronLeft, ChevronRight, Filter, Printer } from "lucide-react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { HexColorPicker } from "react-colorful";
 import IconifyPicker from "@zunicornshift/mui-iconify-picker";
 import { getIconComponent } from "@/utils/icon-map";
@@ -42,6 +42,9 @@ const ServicesPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   // Global search state
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  
+  // Refs for printing
+  const printRef = useRef<HTMLDivElement>(null);
 
   const fetchServices = async () => {
     const response = await axios.get(`${baseApiUrl}/service-items`);
@@ -157,11 +160,11 @@ const ServicesPage: React.FC = () => {
             "Content-Type": "application/json",
             "ngrok-skip-browser-warning": "true",
           },
-          validateStatus: (status) => status === 200 || status === 201, // ✅ Allow 200 or 201
+          validateStatus: (status) => status === 200 || status === 201,
         }
       );
 
-      if (response.data.success || response.status === 201) { // ✅ Handle both
+      if (response.data.success || response.status === 201) {
         await fetchServices();
 
         setHasChanges(false);
@@ -266,34 +269,34 @@ const ServicesPage: React.FC = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onChangeSubValue = (serviceId: number, subId: number, key: string, value: any) => {
-  setServicesItem((prev) =>
-    prev?.map((item) =>
-      item.id === serviceId
-        ? {
-            ...item,
-            subServiceItems: item.subServiceItems.map((sub) =>
-              sub.id === subId ? { ...sub, [key]: value } : sub
-            ),
-          }
-        : item
-    )
-  );
-};
+    setServicesItem((prev) =>
+      prev?.map((item) =>
+        item.id === serviceId
+          ? {
+              ...item,
+              subServiceItems: item.subServiceItems.map((sub) =>
+                sub.id === subId ? { ...sub, [key]: value } : sub
+              ),
+            }
+          : item
+      )
+    );
+  };
 
-const handleSubServiceDelete = (serviceId: number, subId: number) => {
-  setServicesItem((prev) =>
-    prev?.map((item) =>
-      item.id === serviceId
-        ? {
-            ...item,
-            subServiceItems: item.subServiceItems.map((sub) =>
-              sub.id === subId ? { ...sub, markAsDelete: !sub.markAsDelete } : sub
-            ),
-          }
-        : item
-    )
-  );
-};
+  const handleSubServiceDelete = (serviceId: number, subId: number) => {
+    setServicesItem((prev) =>
+      prev?.map((item) =>
+        item.id === serviceId
+          ? {
+              ...item,
+              subServiceItems: item.subServiceItems.map((sub) =>
+                sub.id === subId ? { ...sub, markAsDelete: !sub.markAsDelete } : sub
+              ),
+            }
+          : item
+      )
+    );
+  };
 
   const handleCloseHexColorPicker = () => {
     if (selectedSubServiceId) {
@@ -352,8 +355,8 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
     if (!selectedServiceId) return;
 
     setSelectedId(selectedServiceId);
-    setSubServiceSearchQuery(''); // Reset search when opening modal
-    setModalCurrentPage(1); // Reset to first page
+    setSubServiceSearchQuery('');
+    setModalCurrentPage(1);
 
     setModalTitle(selectedServiceTitle ?? '');
     setIsModalOpen(true);
@@ -370,13 +373,8 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
     const query = globalSearchQuery.toLowerCase();
     
     return servicesItem.filter((service) => {
-      // Check service title
       const serviceTitleMatch = service.title.toLowerCase().includes(query);
-      
-      // Check service description
       const serviceDescMatch = service.description?.toLowerCase().includes(query) ?? false;
-      
-      // Check sub-services
       const hasMatchingSubService = service.subServiceItems?.some((sub) => {
         const subTitleMatch = sub.title.toLowerCase().includes(query);
         const subDescMatch = sub.description?.toLowerCase().includes(query) ?? false;
@@ -448,6 +446,132 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
     setNonEditingCurrentPage(1);
   }, [nonEditingSubServiceSearchQuery]);
 
+  // Print function using window.print() as fallback
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow pop-ups to print the document');
+      return;
+    }
+
+    // Get the print styles
+    const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
+    let stylesHtml = '';
+    styles.forEach((style) => {
+      if (style.tagName === 'STYLE') {
+        stylesHtml += style.outerHTML;
+      } else if (style.tagName === 'LINK') {
+        stylesHtml += style.outerHTML;
+      }
+    });
+
+    // Get the print content HTML
+    const printContentHtml = printContent.innerHTML;
+
+    // Write to the new window
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Sub-Services Price List - ${new Date().toLocaleDateString()}</title>
+          ${stylesHtml}
+          <style>
+            /* Print-specific styles */
+            @page {
+              size: landscape;
+              margin: 1cm;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.3;
+              color: #000;
+              background: white;
+              padding: 20px;
+              margin: 0;
+            }
+            .no-print, .btn, button, input, select, .modal, .alert-dialog {
+              display: none !important;
+            }
+            .print-only {
+              display: block !important;
+            }
+            .print-header {
+              text-align: center;
+              margin-bottom: 20px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #04697D;
+            }
+            .print-header h1 {
+              color: #04697D;
+              font-size: 24px;
+              margin: 0 0 5px 0;
+            }
+            .print-header .date {
+              color: #666;
+              font-size: 12px;
+            }
+            .print-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+              font-size: 10pt;
+            }
+            .print-table th {
+              background: #04697D;
+              color: white;
+              font-weight: bold;
+              text-align: left;
+              padding: 8px;
+              border: 1px solid #035a6b;
+            }
+            .print-table td {
+              padding: 6px 8px;
+              border: 1px solid #ddd;
+              vertical-align: top;
+            }
+            .print-table .service-row {
+              background: #e1f0f3;
+              font-weight: bold;
+            }
+            .print-table .service-row td {
+              border-bottom: 2px solid #04697D;
+            }
+            .print-footer {
+              position: fixed;
+              bottom: 0;
+              width: 100%;
+              text-align: center;
+              font-size: 9px;
+              color: #666;
+              padding: 10px 0;
+              border-top: 1px solid #ddd;
+            }
+          </style>
+        </head>
+        <body>
+          ${printContentHtml}
+          <div class="print-footer">
+            <p>This is a computer-generated document. Valid without signature.</p>
+            <p>Generated on: ${new Date().toLocaleString()}</p>
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // Print after a short delay to ensure styles are loaded
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
   const Pagination = ({ 
     currentPage, 
     totalPages, 
@@ -491,6 +615,7 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
           content="Manage and edit services in the Manong admin dashboard. Add new services, update details, or remove existing services efficiently."
         />
       </Helmet>
+
       <div className="p-2 sm:p-4">
         <div className="flex flex-col gap-3 sm:gap-4">
           <label className="block mb-1 font-medium text-sm sm:text-base">
@@ -499,13 +624,24 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
           <div className="flex flex-col justify-center">
             {/* Action Buttons */}
             <div className="flex flex-row justify-between gap-2 mb-4 flex-wrap">
-              <button 
-                type="button" 
-                className="btn btn-sm sm:btn-md" 
-                onClick={() => setResetDialogOpen(true)}
-              >
-                Reset to Defaults
-              </button>
+              <div className="flex flex-row gap-2">
+                <button 
+                  type="button" 
+                  className="btn btn-sm sm:btn-md" 
+                  onClick={() => setResetDialogOpen(true)}
+                >
+                  Reset to Defaults
+                </button>
+                {/* Print Button */}
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="btn btn-sm sm:btn-md bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Price List
+                </button>
+              </div>
               <div className="flex flex-row justify-end">
                 <div className="flex flex-row gap-2">
                   {hasChanges && (
@@ -533,8 +669,8 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
               </div>
             </div>
 
-            {/* Global Search Bar */}
-            <div className="mb-6">
+            {/* Global Search Bar - No Print */}
+            <div className="no-print mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -572,13 +708,10 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
             {/* Color Picker Modal for Mobile */}
             {isEditing && showColorPicker && (
               <>
-                {/* Backdrop */}
                 <div 
                   className="fixed inset-0 bg-black/30 bg-opacity-50 z-40"
                   onClick={handleCloseHexColorPicker}
                 />
-                
-                {/* Modal */}
                 <div className={clsx(localStorage.getItem("theme") == 'dark' ? "bg-slate-800" : "bg-white", "fixed inset-x-4 top-1/2 -translate-y-1/2 sm:inset-x-auto sm:right-4 sm:top-20 sm:translate-y-0 rounded-lg shadow-xl z-50 p-4 max-w-sm mx-auto sm:mx-0")}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-semibold text-lg">Pick Color</h3>
@@ -615,9 +748,7 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                           return <Icon className="w-5 h-5" style={{ color: selectedIconTextColor }} />;
                         })()}
                       </div>
-                      <p 
-                        className="text-center text-xs sm:text-sm"
-                      >
+                      <p className="text-center text-xs sm:text-sm">
                         {selectedServiceTitle}
                       </p>
                     </div>
@@ -636,7 +767,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                     <div className="mt-2">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">Icon Color:</span>
-                        
                         <ColorInput
                           selectedColorInput="iconTextColor"
                           setSelectedColorInput={setSelectedColorInput}
@@ -645,7 +775,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                           selectedId={selectedId}
                           className="flex-1 text-sm"
                         />
-
                       </div>
                     </div>
                   )}
@@ -662,7 +791,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                         if (!servicesItem) return;
 
                         if (selectedSubServiceId) {
-                          // Update state safely
                           setServicesItem((prev) => {
                             if (!prev) return prev;
                             return prev.map((item) => {
@@ -678,7 +806,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                             });
                           });
                         } else {
-                          // Main service icon update
                           setServicesItem((prev) => {
                             if (!prev) return prev;
                             return prev.map((item) =>
@@ -688,7 +815,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                         }
                       }}
                     />
-
                   </div>
                 </div>
               </>
@@ -801,8 +927,7 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
         <div className="p-4">
           {!isEditing && servicesItem?.find((item) => item.id === selectedId)?.subServiceItems.length ? (
             <>
-              {/* Search Input for Non-Editing Mode */}
-              <div className="mb-4">
+              <div className="no-print mb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
@@ -828,7 +953,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                 )}
               </div>
 
-              {/* Sub-Services Grid */}
               {filteredNonEditingSubServices.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   No sub-services found matching your search.
@@ -837,16 +961,16 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-2 gap-2">
                     {paginatedNonEditingSubServices.map((subItem) => (
-  <SubServiceItemCard
-    key={subItem.id}
-    subServiceItem={subItem}
-    serviceItemId={selectedId} // Pass the service ID
-    isEditing={isEditing}
-    onClickCard={() => {}}
-    onChangeSubValue={onChangeSubValue}
-    onDelete={() => {}}
-  />
-))}
+                      <SubServiceItemCard
+                        key={subItem.id}
+                        subServiceItem={subItem}
+                        serviceItemId={selectedId}
+                        isEditing={isEditing}
+                        onClickCard={() => {}}
+                        onChangeSubValue={onChangeSubValue}
+                        onDelete={() => {}}
+                      />
+                    ))}
                   </div>
                   <Pagination 
                     currentPage={nonEditingCurrentPage}
@@ -857,6 +981,66 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
               )}
             </>
           ) : null}
+        </div>
+
+        {/* Print View Component - Totals Removed */}
+        <div ref={printRef} className="print-only" style={{ display: 'none' }}>
+          <div className="print-header">
+            <h1>Sub-Services Price List</h1>
+            <div className="date">Generated: {new Date().toLocaleString()}</div>
+          </div>
+
+          {/* Detailed Table - No Summary, No Totals */}
+          <table className="print-table">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Sub-Service</th>
+                <th>Description</th>
+                <th>Cost ($)</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {servicesItem?.map((service) => {
+                const activeSubs = service.subServiceItems?.filter(sub => !sub.markAsDelete) || [];
+                if (activeSubs.length === 0) return null;
+                
+                return (
+                  <React.Fragment key={service.id}>
+                    <tr className="service-row">
+                      <td colSpan={7}>
+                        <strong>{service.title}</strong>
+                        {service.description && <span style={{ fontWeight: 'normal', marginLeft: '10px', color: '#555' }}>- {service.description}</span>}
+                      </td>
+                    </tr>
+                    {activeSubs.map((sub) => (
+                      <tr key={sub.id}>
+                        <td></td>
+                        <td>{sub.title}</td>
+                        <td>{sub.description || '-'}</td>
+                        <td>${sub.cost?.toLocaleString() || '0'}</td>
+                        <td>
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            fontWeight: 'bold',
+                            backgroundColor: sub.status === 'active' ? '#d4edda' : '#f8d7da',
+                            color: sub.status === 'active' ? '#155724' : '#721c24'
+                          }}>
+                            {sub.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {/* No service subtotal row */}
+                  </React.Fragment>
+                );
+              })}
+              {/* No grand total row */}
+            </tbody>
+          </table>
         </div>
 
         <AlertDialog
@@ -887,19 +1071,15 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
             setModalCurrentPage(1);
           }}
           footer={
-            <>
-              {/* Add Button */}
-              <div
-                onClick={() => handleAddSubServiceItem(selectedId!)}
-                className={clsx(localStorage.getItem("theme") == 'dark' && "border-slate-600", "flex flex-row border rounded-lg p-4 justify-center items-center gap-2 cursor-pointer hover:bg-gray-200 transition-all duration-300")}
-              >
-                <Icon icon="material-symbols:add" />
-                <p>Add Sub-Service Item</p>
-              </div>
-            </>
+            <div
+              onClick={() => handleAddSubServiceItem(selectedId!)}
+              className={clsx(localStorage.getItem("theme") == 'dark' && "border-slate-600", "flex flex-row border rounded-lg p-4 justify-center items-center gap-2 cursor-pointer hover:bg-gray-200 transition-all duration-300")}
+            >
+              <Icon icon="material-symbols:add" />
+              <p>Add Sub-Service Item</p>
+            </div>
           }
         >
-          {/* Search Input */}
           <div className="mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -926,7 +1106,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
             )}
           </div>
 
-          {/* Sub-Services List */}
           <div>
             {filteredSubServices.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -935,20 +1114,20 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
             ) : (
               <>
                 {paginatedModalSubServices.map((subItem) => (
-  <SubServiceItemCard
-    key={subItem.id}
-    subServiceItem={subItem}
-    serviceItemId={selectedId} // Pass the service ID
-    isEditing={isEditing}
-    onClickCard={(id) => {
-      setSelectedSubServiceId(id);
-      setShowColorPicker(true);
-      setIsModalOpen(false);
-    }}
-    onChangeSubValue={onChangeSubValue} // This now accepts serviceId, subId, key, value
-    onDelete={(id) => handleSubServiceDelete(selectedId, id)}
-  />
-))}
+                  <SubServiceItemCard
+                    key={subItem.id}
+                    subServiceItem={subItem}
+                    serviceItemId={selectedId}
+                    isEditing={isEditing}
+                    onClickCard={(id) => {
+                      setSelectedSubServiceId(id);
+                      setShowColorPicker(true);
+                      setIsModalOpen(false);
+                    }}
+                    onChangeSubValue={onChangeSubValue}
+                    onDelete={(id) => handleSubServiceDelete(selectedId, id)}
+                  />
+                ))}
                 <Pagination 
                   currentPage={modalCurrentPage}
                   totalPages={modalTotalPages}
@@ -958,7 +1137,6 @@ const handleSubServiceDelete = (serviceId: number, subId: number) => {
             )}
           </div>
         </Modal>
-
       </div>
 
       {successMessage && (
